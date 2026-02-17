@@ -30,11 +30,11 @@ jobs:
         run: |
           curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
           cargo binstall trunk --no-confirm --force
-          sudo apt-get install -y brotli binaryen
+          sudo apt-get install -y brotli
+          curl -L https://github.com/WebAssembly/binaryen/releases/download/version_126/binaryen-version_126-x86_64-linux.tar.gz | tar xz
+          sudo cp binaryen-version_126/bin/wasm-opt /usr/local/bin/
 
       - name: Build
-        env:
-          WASM_BINDGEN_EXTERNREF: 0
         run: $HOME/.cargo/bin/trunk build --release --public-url /tafels/
 
       - name: Upload artifact
