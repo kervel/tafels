@@ -29,12 +29,12 @@ jobs:
       - name: Install tools
         run: |
           curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           cargo binstall trunk --no-confirm
           sudo apt-get install -y brotli binaryen
+          echo "Trunk location: $(which trunk || find $HOME/.cargo -name trunk -type f 2>/dev/null)"
 
       - name: Build
-        run: trunk build --release --public-url /tafels/
+        run: $HOME/.cargo/bin/trunk build --release --public-url /tafels/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
