@@ -23,11 +23,6 @@ pub struct OrbitCamera {
 /// Reset camera to snap behind character when entering Playing state.
 pub fn reset_camera_on_play(mut camera: Query<&mut OrbitCamera>) {
     for mut orbit in &mut camera {
-        info!(
-            "reset_camera_on_play: yaw was {}, setting to PI ({}), needs_snap=true",
-            orbit.yaw,
-            std::f32::consts::PI
-        );
         orbit.yaw = std::f32::consts::PI;
         orbit.last_move_yaw = 0.0;
         orbit.needs_snap = true;
@@ -159,10 +154,6 @@ pub fn camera_follow(
 
         // Snap when flagged, smooth lerp otherwise
         if orbit.needs_snap {
-            info!(
-                "SNAP: yaw={}, final_pos={}, char_pos={}, target_pos={}",
-                orbit.yaw, final_pos, char_transform.translation, target_pos
-            );
             cam_transform.translation = final_pos;
             orbit.needs_snap = false;
         } else {
