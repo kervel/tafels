@@ -1,3 +1,4 @@
+pub mod coins;
 pub mod difficulty;
 pub mod exercise;
 pub mod panels;
@@ -16,6 +17,7 @@ impl Plugin for GamePlugin {
             .add_plugins(exercise::ExercisePlugin)
             .add_plugins(panels::PanelPlugin)
             .add_plugins(scoring::ScoringPlugin)
+            .add_plugins(coins::CoinPlugin)
             .add_systems(OnEnter(GameState::Playing), init_game_session);
     }
 }
@@ -37,6 +39,8 @@ pub struct GameSession {
     pub correct_count: u32,
     pub wrong_count: u32,
     pub timeout_count: u32,
+    pub combo: u32,
+    pub max_combo: u32,
     pub start_time: f64,
 }
 
@@ -50,6 +54,8 @@ impl Default for GameSession {
             correct_count: 0,
             wrong_count: 0,
             timeout_count: 0,
+            combo: 0,
+            max_combo: 0,
             start_time: 0.0,
         }
     }
@@ -61,5 +67,7 @@ fn init_game_session(mut session: ResMut<GameSession>, time: Res<Time>) {
     session.correct_count = 0;
     session.wrong_count = 0;
     session.timeout_count = 0;
+    session.combo = 0;
+    session.max_combo = 0;
     session.start_time = time.elapsed_secs_f64();
 }

@@ -9,17 +9,17 @@ impl Plugin for LightingPlugin {
 }
 
 fn setup_lighting(mut commands: Commands) {
-    // Directional sun light - late morning alpine sun
+    // Directional sun - moderate late afternoon
     commands.spawn((
         DirectionalLight {
-            color: Color::srgb(1.0, 0.95, 0.85),
-            illuminance: 80_000.0,
+            color: Color::srgb(1.0, 0.9, 0.75),
+            illuminance: 40_000.0,
             shadows_enabled: true,
             ..default()
         },
         Transform::from_rotation(Quat::from_euler(
             EulerRot::XYZ,
-            -std::f32::consts::FRAC_PI_4,
+            -0.35, // low-ish angle
             std::f32::consts::FRAC_PI_6,
             0.0,
         )),

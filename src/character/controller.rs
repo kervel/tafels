@@ -85,7 +85,7 @@ pub fn apply_movement(
         let look_dir = movement.normalize();
         if look_dir.length_squared() > 0.001 {
             let target_rotation = Quat::from_rotation_y(look_dir.x.atan2(look_dir.z));
-            transform.rotation = transform.rotation.slerp(target_rotation, 10.0 * time.delta_secs());
+            transform.rotation = transform.rotation.slerp(target_rotation, 4.0 * time.delta_secs());
         }
     }
 }

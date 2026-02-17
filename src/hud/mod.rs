@@ -19,6 +19,7 @@ impl Plugin for HudPlugin {
                     update_timer_display,
                     update_question_display,
                     update_progress_display,
+                    update_combo_display,
                     show_answer_feedback,
                     tick_feedback,
                 )
@@ -47,6 +48,9 @@ struct QuestionDisplay;
 struct ProgressDisplay;
 
 #[derive(Component)]
+struct ComboDisplay;
+
+#[derive(Component)]
 struct FeedbackPopup {
     timer: f32,
 }
@@ -63,7 +67,7 @@ fn spawn_hud(mut commands: Commands) {
             },
         ))
         .with_children(|parent| {
-            // Top bar: coins (left), timer (center), progress (right)
+            // Top bar: coins (left), timer (center), combo + progress (right)
             parent
                 .spawn((
                     Node {
@@ -120,16 +124,37 @@ fn spawn_hud(mut commands: Commands) {
                             ));
                         });
 
-                    // Progress counter (right)
-                    top_bar.spawn((
-                        ProgressDisplay,
-                        Text::new("Question 0 / 20"),
-                        TextFont {
-                            font_size: 22.0,
+                    // Right section: combo + progress
+                    top_bar
+                        .spawn(Node {
+                            flex_direction: FlexDirection::Row,
+                            align_items: AlignItems::Center,
+                            column_gap: Val::Px(20.0),
                             ..default()
-                        },
-                        TextColor(Color::WHITE),
-                    ));
+                        })
+                        .with_children(|right| {
+                            // Combo display (hidden when combo < 2)
+                            right.spawn((
+                                ComboDisplay,
+                                Text::new(""),
+                                TextFont {
+                                    font_size: 26.0,
+                                    ..default()
+                                },
+                                TextColor(Color::srgb(1.0, 0.6, 0.0)),
+                            ));
+
+                            // Progress counter
+                            right.spawn((
+                                ProgressDisplay,
+                                Text::new("Question 0 / 20"),
+                                TextFont {
+                                    font_size: 22.0,
+                                    ..default()
+                                },
+                                TextColor(Color::WHITE),
+                            ));
+                        });
                 });
 
             // Question text (centered, below top bar)
@@ -235,11 +260,36 @@ fn update_progress_display(
     }
 }
 
+fn update_combo_display(
+    session: Res<GameSession>,
+    mut query: Query<(&mut Text, &mut TextColor), With<ComboDisplay>>,
+) {
+    for (mut text, mut color) in &mut query {
+        if session.combo >= 2 {
+            let multiplier = match session.combo {
+                2 => 1.5,
+                3 => 2.0,
+                _ => 3.0,
+            };
+            **text = format!("x{} Combo!", multiplier);
+
+            color.0 = match session.combo {
+                2 => Color::srgb(1.0, 0.6, 0.0),       // orange
+                3 => Color::srgb(1.0, 0.3, 0.0),       // deep orange
+                _ => Color::srgb(1.0, 0.15, 0.15),     // red
+            };
+        } else {
+            **text = String::new();
+        }
+    }
+}
+
 /// Resource to trigger feedback popup from scoring system.
 #[derive(Resource)]
 pub struct AnswerFeedback {
     pub correct: bool,
     pub coins_delta: i32,
+    pub combo: u32,
 }
 
 /// Spawn a centered feedback text when an answer is processed.
@@ -258,8 +308,18 @@ fn show_answer_feedback(
     }
 
     let (msg, color) = if fb.correct {
+        let combo_info = if fb.combo >= 2 {
+            let mult = match fb.combo {
+                2 => "1.5x",
+                3 => "2x",
+                _ => "3x",
+            };
+            format!(" ({})", mult)
+        } else {
+            String::new()
+        };
         (
-            format!("Correct! +{} coins", fb.coins_delta),
+            format!("Correct! +{} coins{}", fb.coins_delta, combo_info),
             Color::srgb(0.2, 1.0, 0.3),
         )
     } else {
@@ -310,4 +370,3 @@ fn tick_feedback(
         }
     }
 }
-

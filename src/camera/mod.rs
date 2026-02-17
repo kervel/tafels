@@ -45,24 +45,26 @@ fn spawn_camera(
     commands.spawn((
         Camera3d::default(),
         Bloom {
-            intensity: 0.3,
+            intensity: 0.5,
+            low_frequency_boost: 0.6,
+            low_frequency_boost_curvature: 0.5,
             ..Bloom::NATURAL
         },
         Transform::from_translation(Vec3::new(0.0, start_y, start_z))
             .looking_at(Vec3::new(0.0, center_height + 1.5, 0.0), Vec3::Y),
         Skybox {
             image: skybox_handle,
-            brightness: 800.0,
+            brightness: 500.0,
             rotation: Quat::IDENTITY,
         },
         AmbientLight {
-            color: Color::srgb(0.6, 0.7, 0.9),
-            brightness: 500.0,
+            color: Color::srgb(0.5, 0.55, 0.7),
+            brightness: 300.0,
             affects_lightmapped_meshes: true,
         },
         DistanceFog {
-            color: Color::srgba(0.70, 0.82, 0.92, 1.0),
-            directional_light_color: Color::srgba(1.0, 0.95, 0.85, 0.5),
+            color: Color::srgba(0.50, 0.55, 0.65, 1.0),
+            directional_light_color: Color::srgba(1.0, 0.85, 0.65, 0.5),
             directional_light_exponent: 15.0,
             falloff: FogFalloff::Exponential { density: 0.012 },
         },
@@ -83,10 +85,10 @@ fn generate_sky_cubemap() -> Image {
     let size = 64;
     let mut data = Vec::with_capacity(size * size * 4 * 6);
 
-    // Sky colors
-    let zenith = [0.25_f32, 0.45, 0.85]; // deep blue
-    let horizon = [0.70_f32, 0.82, 0.92]; // light blue/white
-    let sun_side = [0.85_f32, 0.88, 0.92]; // warm horizon near sun
+    // Sky colors - dusky twilight for neon contrast
+    let zenith = [0.08_f32, 0.12, 0.35]; // dark indigo
+    let horizon = [0.25_f32, 0.28, 0.40]; // muted blue-grey
+    let sun_side = [0.40_f32, 0.30, 0.25]; // warm sunset remnant
 
     for face in 0..6 {
         for y in 0..size {

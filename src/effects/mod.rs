@@ -13,6 +13,7 @@ impl Plugin for EffectsPlugin {
                 (
                     particles::handle_burst_events,
                     particles::update_particles,
+                    particles::update_burst_lights,
                     particles::ball_trail_particles,
                 )
                     .run_if(in_state(GameState::Playing)),

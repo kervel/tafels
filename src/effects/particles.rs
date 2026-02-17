@@ -5,6 +5,14 @@ use crate::projectile::Projectile;
 
 const MAX_PARTICLES: usize = 500;
 
+/// A temporary point light that fades out and despawns.
+#[derive(Component)]
+pub struct BurstLight {
+    pub lifetime: f32,
+    pub max_lifetime: f32,
+    pub max_intensity: f32,
+}
+
 /// A single particle with velocity, lifetime, and fade.
 #[derive(Component)]
 pub struct Particle {
@@ -60,6 +68,24 @@ pub fn handle_burst_events(
             ..default()
         });
 
+        // Spawn a temporary point light at the burst position
+        let light_intensity = 2_000_000.0;
+        commands.spawn((
+            BurstLight {
+                lifetime: event.lifetime,
+                max_lifetime: event.lifetime,
+                max_intensity: light_intensity,
+            },
+            PointLight {
+                color: event.color,
+                intensity: light_intensity,
+                range: 30.0,
+                shadows_enabled: false,
+                ..default()
+            },
+            Transform::from_translation(event.position),
+        ));
+
         let mut rng = rand::thread_rng();
 
         for _ in 0..count {
@@ -109,6 +135,24 @@ pub fn update_particles(
         let frac = (particle.lifetime / particle.max_lifetime).clamp(0.0, 1.0);
         let scale = frac * frac; // quadratic fade
         transform.scale = Vec3::splat(scale.max(0.01));
+    }
+}
+
+/// Fade out and despawn burst lights.
+pub fn update_burst_lights(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut BurstLight, &mut PointLight)>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut burst, mut light) in &mut query {
+        burst.lifetime -= dt;
+        if burst.lifetime <= 0.0 {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        let frac = (burst.lifetime / burst.max_lifetime).clamp(0.0, 1.0);
+        light.intensity = burst.max_intensity * frac;
     }
 }
 

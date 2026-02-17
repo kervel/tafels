@@ -216,6 +216,7 @@ fn tick_exercise_timer(
         session.timeout_count += 1;
         session.current_index += 1;
         session.coins -= 3;
+        session.combo = 0;
 
         // Orange timeout particles at each panel
         for (_entity, panel_tf) in &panels {

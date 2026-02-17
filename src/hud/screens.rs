@@ -197,12 +197,13 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>) {
 
             // Stats
             let stats = format!(
-                "Questions: {}\nCorrect: {}\nWrong: {}\nTimeouts: {}\nAccuracy: {}%\nFinal Coins: {}",
+                "Questions: {}\nCorrect: {}\nWrong: {}\nTimeouts: {}\nAccuracy: {}%\nMax Combo: {}\nFinal Coins: {}",
                 total,
                 session.correct_count,
                 session.wrong_count,
                 session.timeout_count,
                 accuracy,
+                session.max_combo,
                 session.coins,
             );
             parent.spawn((

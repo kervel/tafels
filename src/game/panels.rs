@@ -205,7 +205,8 @@ pub fn spawn_answer_panels(
 
         let mesh = meshes.add(Cuboid::new(1.8, panel_height, 0.12));
 
-        // Panel sign
+        // Panel sign with point light child that illuminates the ground
+        let panel_light_color = Color::srgb(color[0], color[1], color[2]);
         commands.spawn((
             Mesh3d(mesh),
             MeshMaterial3d(material),
@@ -215,6 +216,15 @@ pub fn spawn_answer_panels(
                 is_correct: value == correct_answer,
                 panel_index: i as u8,
             },
+        )).with_child((
+            PointLight {
+                color: panel_light_color,
+                intensity: 600_000.0,
+                range: 20.0,
+                shadows_enabled: false,
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(0.0, -0.5, 0.5)),
         ));
 
         // Pole underneath

@@ -101,5 +101,15 @@ fn spawn_ball(
             max_bounces: 8,
         },
         ProjectileLifetime { remaining: 10.0 },
+    )).with_child((
+        // Point light that moves with the ball - lights up ground/trees nearby
+        PointLight {
+            color: Color::srgb(1.0, 0.4, 0.2),
+            intensity: 800_000.0,
+            range: 25.0,
+            shadows_enabled: false,
+            ..default()
+        },
+        Transform::IDENTITY,
     ));
 }

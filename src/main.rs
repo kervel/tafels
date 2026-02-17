@@ -15,7 +15,7 @@ use bevy::dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
 
 fn main() {
     App::new()
-        .insert_resource(ClearColor(Color::srgb(0.53, 0.81, 0.92)))
+        .insert_resource(ClearColor(Color::srgb(0.35, 0.45, 0.58)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "3dt - Math Tables Game".to_string(),
