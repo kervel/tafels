@@ -30,12 +30,8 @@ pub fn read_movement_input(
             Vec2::ZERO
         };
 
-        // Shift to run (1.5x speed)
-        controller.speed = if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
-            12.0
-        } else {
-            8.0
-        };
+        // Shift to run (1.5x base speed)
+        controller.running = keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
     }
 }
 
@@ -61,7 +57,7 @@ pub fn apply_movement(
         let right = Vec3::new(camera_yaw.cos(), 0.0, -camera_yaw.sin());
 
         let movement = (forward * input.direction.y + right * input.direction.x).normalize()
-            * controller.speed
+            * controller.effective_speed()
             * time.delta_secs();
 
         transform.translation += movement;
@@ -95,7 +91,7 @@ pub fn update_character_state(
 ) {
     for (input, controller, mut state) in &mut query {
         let new_state = if input.direction.length_squared() > 0.001 {
-            if controller.speed > 10.0 {
+            if controller.running {
                 CharacterState::Running
             } else {
                 CharacterState::Walking

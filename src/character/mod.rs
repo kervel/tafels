@@ -32,6 +32,13 @@ impl Plugin for CharacterPlugin {
 #[derive(Component)]
 pub struct CharacterController {
     pub speed: f32,
+    pub running: bool,
+}
+
+impl CharacterController {
+    pub fn effective_speed(&self) -> f32 {
+        if self.running { self.speed * 1.5 } else { self.speed }
+    }
 }
 
 #[derive(Component, Default)]
@@ -75,7 +82,7 @@ fn spawn_character(
         SceneRoot(asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/char_adventurer/char_adventurer.glb"))),
         Transform::from_translation(spawn_pos).with_scale(Vec3::splat(1.0)),
         CharacterMarker,
-        CharacterController { speed: 28.0 },
+        CharacterController { speed: 18.0, running: false },
         MovementInput::default(),
         CharacterState::default(),
     ));

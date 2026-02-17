@@ -22,6 +22,7 @@ impl Plugin for ProjectilePlugin {
                 physics::bounce_on_terrain,
                 physics::tick_lifetime,
                 collision::check_ball_panel_collision,
+                collision::check_ball_beacon_collision,
             )
                 .run_if(in_state(GameState::Playing)),
         );
