@@ -33,6 +33,8 @@ jobs:
           sudo apt-get install -y brotli binaryen
 
       - name: Build
+        env:
+          WASM_BINDGEN_EXTERNREF: 0
         run: $HOME/.cargo/bin/trunk build --release --public-url /tafels/
 
       - name: Upload artifact
