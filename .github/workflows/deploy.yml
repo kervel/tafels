@@ -33,7 +33,9 @@ jobs:
           sudo apt-get install -y brotli binaryen
 
       - name: Build
-        run: trunk build --release --public-url /tafels/
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          trunk build --release --public-url /tafels/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
