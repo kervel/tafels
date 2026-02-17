@@ -6,6 +6,7 @@ use super::panels::NEON_COLORS;
 use super::{ActiveExercises, GameSession, GameState};
 use crate::character::CharacterMarker;
 use crate::collision::VegetationCollider;
+use crate::effects::particles::{ParticleStyle, StyledParticleEvent};
 
 pub struct BeaconPlugin;
 
@@ -64,6 +65,7 @@ fn spawn_beacon(
     terrain: Option<Res<crate::terrain::TerrainResource>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut styled_events: MessageWriter<StyledParticleEvent>,
 ) {
     // Tick cooldown
     if active_exercises.cooldown_timer > 0.0 {
@@ -225,21 +227,43 @@ fn spawn_beacon(
             ));
         });
 
+    // Rising sparkles — beacon materializing
+    styled_events.write(StyledParticleEvent {
+        position: spawn_center + Vec3::Y * 1.0,
+        color: Color::srgb(neon[0], neon[1], neon[2]),
+        count: 20,
+        speed: 2.0,
+        lifetime: 1.5,
+        size: 0.08,
+        style: ParticleStyle::RisingSparkle,
+    });
+
     active_exercises.cooldown_timer = 5.0;
 }
 
 fn tick_world_lifetime(
     mut commands: Commands,
     time: Res<Time>,
-    mut beacons: Query<(Entity, &BeaconState, &mut WorldLifetime)>,
+    mut beacons: Query<(Entity, &BeaconState, &Transform, &mut WorldLifetime)>,
+    mut styled_events: MessageWriter<StyledParticleEvent>,
 ) {
-    for (entity, state, mut lifetime) in &mut beacons {
+    for (entity, state, tf, mut lifetime) in &mut beacons {
         if *state != BeaconState::Dormant {
             continue;
         }
         lifetime.remaining -= time.delta_secs();
         if lifetime.remaining <= 0.0 {
-            // Quiet vanish — no penalty, no engagement count
+            // Falling embers — beacon dissolving
+            styled_events.write(StyledParticleEvent {
+                position: tf.translation + Vec3::Y * 2.0,
+                color: Color::srgb(1.0, 0.4, 0.1),
+                count: 18,
+                speed: 1.5,
+                lifetime: 2.0,
+                size: 0.1,
+                style: ParticleStyle::FallingEmber,
+            });
+
             commands.entity(entity).despawn();
         }
     }
@@ -264,7 +288,7 @@ fn check_proximity_trigger(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut burst_events: MessageWriter<crate::effects::particles::ParticleBurstEvent>,
+    mut styled_events: MessageWriter<StyledParticleEvent>,
 ) {
     let Ok(char_tf) = character.single() else {
         return;
@@ -356,15 +380,16 @@ fn check_proximity_trigger(
             exercise_id.0,
         );
 
-        // Reveal particle burst
+        // Expanding ring — beacon activating
         let neon = NEON_COLORS[exercise_id.0 as usize % NEON_COLORS.len()];
-        burst_events.write(crate::effects::particles::ParticleBurstEvent {
-            position: beacon_tf.translation + Vec3::Y * 2.0,
+        styled_events.write(StyledParticleEvent {
+            position: beacon_tf.translation + Vec3::Y * 0.5,
             color: Color::srgb(neon[0], neon[1], neon[2]),
-            count: 15,
-            speed: 3.0,
-            lifetime: 0.8,
-            size: 0.2,
+            count: 24,
+            speed: 5.0,
+            lifetime: 1.0,
+            size: 0.15,
+            style: ParticleStyle::Ring,
         });
     }
 }

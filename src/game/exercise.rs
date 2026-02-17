@@ -3,7 +3,7 @@ use rand::prelude::*;
 
 use super::difficulty::Difficulty;
 use super::GameSession;
-use crate::effects::particles::ParticleBurstEvent;
+use crate::effects::particles::{ParticleStyle, StyledParticleEvent};
 
 pub struct ExercisePlugin;
 
@@ -126,7 +126,7 @@ fn tick_exercise_timer(
     poles: Query<(Entity, &ExerciseId), With<super::panels::PanelPole>>,
     question_texts: Query<(Entity, &super::panels::QuestionText)>,
     timer_texts: Query<(Entity, &super::panels::TimerText)>,
-    mut burst_events: MessageWriter<ParticleBurstEvent>,
+    mut styled_events: MessageWriter<StyledParticleEvent>,
 ) {
     for (exercise_entity, exercise_eid, mut exercise, beacon_state) in &mut exercises {
         // Only tick timer for activated beacons
@@ -146,16 +146,17 @@ fn tick_exercise_timer(
             session.coins -= 3;
             session.combo = 0;
 
-            // Orange timeout particles at each panel matching this exercise
+            // Falling embers at each panel — exercise timed out
             for (_entity, panel_tf, panel) in &panels {
                 if panel.exercise_id == exercise_eid.0 {
-                    burst_events.write(ParticleBurstEvent {
+                    styled_events.write(StyledParticleEvent {
                         position: panel_tf.translation,
-                        color: Color::srgb(1.0, 0.5, 0.0),
-                        count: 25,
-                        speed: 6.0,
-                        lifetime: 1.0,
-                        size: 0.15,
+                        color: Color::srgb(1.0, 0.4, 0.1),
+                        count: 15,
+                        speed: 1.5,
+                        lifetime: 2.0,
+                        size: 0.1,
+                        style: ParticleStyle::FallingEmber,
                     });
                 }
             }

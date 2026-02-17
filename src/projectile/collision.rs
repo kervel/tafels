@@ -75,7 +75,7 @@ pub fn check_ball_beacon_collision(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut burst_events: MessageWriter<crate::effects::particles::ParticleBurstEvent>,
+    mut styled_events: MessageWriter<crate::effects::particles::StyledParticleEvent>,
 ) {
     if active_exercises.total_engaged >= session.total_exercises {
         return;
