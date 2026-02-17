@@ -48,27 +48,31 @@ pub fn apply_movement(
         .unwrap_or(0.0);
 
     for (mut transform, input, controller) in &mut query {
-        if input.direction.length_squared() < 0.001 {
-            continue;
+        if input.direction.length_squared() >= 0.001 {
+            // Move relative to camera orientation
+            let forward = Vec3::new(-camera_yaw.sin(), 0.0, -camera_yaw.cos());
+            let right = Vec3::new(camera_yaw.cos(), 0.0, -camera_yaw.sin());
+
+            let movement = (forward * input.direction.y + right * input.direction.x).normalize()
+                * controller.effective_speed()
+                * time.delta_secs();
+
+            transform.translation += movement;
+
+            // Rotate character to face movement direction
+            let look_dir = movement.normalize();
+            if look_dir.length_squared() > 0.001 {
+                let target_rotation = Quat::from_rotation_y(look_dir.x.atan2(look_dir.z));
+                transform.rotation = transform.rotation.slerp(target_rotation, 4.0 * time.delta_secs());
+            }
         }
 
-        // Move relative to camera orientation
-        let forward = Vec3::new(-camera_yaw.sin(), 0.0, -camera_yaw.cos());
-        let right = Vec3::new(camera_yaw.cos(), 0.0, -camera_yaw.sin());
-
-        let movement = (forward * input.direction.y + right * input.direction.x).normalize()
-            * controller.effective_speed()
-            * time.delta_secs();
-
-        transform.translation += movement;
-
-        // Clamp to terrain boundaries (invisible wall)
+        // Always snap to terrain (even when idle)
         if let Some(ref terrain) = terrain {
-            let half = terrain.world_size / 2.0 - 5.0; // 5 unit margin
+            let half = terrain.world_size / 2.0 - 5.0;
             transform.translation.x = transform.translation.x.clamp(-half, half);
             transform.translation.z = transform.translation.z.clamp(-half, half);
 
-            // Snap Y to terrain height
             let y = heightmap::sample_height(
                 &terrain.heightmap,
                 transform.translation.x,
@@ -76,13 +80,24 @@ pub fn apply_movement(
             );
             transform.translation.y = y;
         }
+    }
+}
 
-        // Rotate character to face movement direction
-        let look_dir = movement.normalize();
-        if look_dir.length_squared() > 0.001 {
-            let target_rotation = Quat::from_rotation_y(look_dir.x.atan2(look_dir.z));
-            transform.rotation = transform.rotation.slerp(target_rotation, 4.0 * time.delta_secs());
-        }
+/// Always snap character Y to terrain height (runs in all states).
+pub fn snap_to_terrain(
+    terrain: Option<Res<TerrainResource>>,
+    mut query: Query<&mut Transform, With<super::CharacterMarker>>,
+) {
+    let Some(ref terrain) = terrain else {
+        return;
+    };
+    for mut transform in &mut query {
+        let y = heightmap::sample_height(
+            &terrain.heightmap,
+            transform.translation.x,
+            transform.translation.z,
+        );
+        transform.translation.y = y;
     }
 }
 

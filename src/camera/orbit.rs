@@ -16,6 +16,23 @@ pub struct OrbitCamera {
     pub return_timer: f32,
     /// Last known movement direction yaw (only updated when character is walking)
     pub last_move_yaw: f32,
+    /// When true, snap camera behind character on next frame (no lerp)
+    pub needs_snap: bool,
+}
+
+/// Reset camera to snap behind character when entering Playing state.
+pub fn reset_camera_on_play(mut camera: Query<&mut OrbitCamera>) {
+    for mut orbit in &mut camera {
+        info!(
+            "reset_camera_on_play: yaw was {}, setting to PI ({}), needs_snap=true",
+            orbit.yaw,
+            std::f32::consts::PI
+        );
+        orbit.yaw = std::f32::consts::PI;
+        orbit.last_move_yaw = 0.0;
+        orbit.needs_snap = true;
+        orbit.auto_follow = true;
+    }
 }
 
 pub fn camera_mouse_input(
@@ -88,6 +105,7 @@ pub fn camera_follow(
     for (mut cam_transform, mut orbit) in &mut camera_query {
         if orbit.target == Entity::PLACEHOLDER {
             orbit.target = char_entity;
+            orbit.needs_snap = true;
         }
 
         // Update the last known movement yaw when character is walking FORWARD.
@@ -139,9 +157,19 @@ pub fn camera_follow(
             final_pos.y = final_pos.y.max(terrain_y + 2.0);
         }
 
-        let lerp_speed = 8.0 * time.delta_secs();
-        cam_transform.translation =
-            cam_transform.translation.lerp(final_pos, lerp_speed.min(1.0));
+        // Snap when flagged, smooth lerp otherwise
+        if orbit.needs_snap {
+            info!(
+                "SNAP: yaw={}, final_pos={}, char_pos={}, target_pos={}",
+                orbit.yaw, final_pos, char_transform.translation, target_pos
+            );
+            cam_transform.translation = final_pos;
+            orbit.needs_snap = false;
+        } else {
+            let lerp_speed = 8.0 * time.delta_secs();
+            cam_transform.translation =
+                cam_transform.translation.lerp(final_pos, lerp_speed.min(1.0));
+        }
         *cam_transform = cam_transform.looking_at(target_pos, Vec3::Y);
     }
 }

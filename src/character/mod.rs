@@ -8,6 +8,7 @@ pub struct CharacterPlugin;
 impl Plugin for CharacterPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_character)
+            .add_systems(Update, controller::snap_to_terrain)
             .add_systems(
                 Update,
                 (

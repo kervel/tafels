@@ -20,6 +20,10 @@ impl Plugin for CameraPlugin {
                     orbit::camera_follow,
                 )
                     .chain(),
+            )
+            .add_systems(
+                OnEnter(crate::game::GameState::Playing),
+                orbit::reset_camera_on_play,
             );
     }
 }
@@ -36,8 +40,10 @@ fn spawn_camera(
 
     let pitch = 0.30_f32;
     let distance = 28.0_f32;
+    let initial_yaw = std::f32::consts::PI;
     let start_y = center_height + 1.5 + distance * pitch.sin();
-    let start_z = distance * pitch.cos();
+    let start_x = distance * pitch.cos() * initial_yaw.sin();
+    let start_z = distance * pitch.cos() * initial_yaw.cos();
 
     // Generate a simple gradient skybox cubemap
     let skybox_handle = images.add(generate_sky_cubemap());
@@ -50,7 +56,7 @@ fn spawn_camera(
             low_frequency_boost_curvature: 0.5,
             ..Bloom::NATURAL
         },
-        Transform::from_translation(Vec3::new(0.0, start_y, start_z))
+        Transform::from_translation(Vec3::new(start_x, start_y, start_z))
             .looking_at(Vec3::new(0.0, center_height + 1.5, 0.0), Vec3::Y),
         Skybox {
             image: skybox_handle,
@@ -70,12 +76,13 @@ fn spawn_camera(
         },
         orbit::OrbitCamera {
             distance,
-            yaw: 0.0,
+            yaw: initial_yaw,
             pitch,
             target: Entity::PLACEHOLDER,
             auto_follow: true,
             return_timer: 0.0,
             last_move_yaw: 0.0,
+            needs_snap: true,
         },
     ));
 }
