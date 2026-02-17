@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 
 use super::coins::PendingCoinSpawn;
-use super::exercise::{ActiveExercise, ExerciseState};
-use super::panels::{AnswerPanel, PanelPole};
-use super::{GameSession, GameState};
+use super::exercise::{ActiveExercise, ExerciseId, ExerciseState};
+use super::panels::{AnswerPanel, PanelPole, QuestionText, TimerText};
+use super::{ActiveExercises, GameSession, GameState};
 use crate::effects::particles::ParticleBurstEvent;
 use crate::hud::AnswerFeedback;
 
@@ -26,6 +26,7 @@ pub struct PendingAnswer {
     pub value: u32,
     pub is_correct: bool,
     pub hit_position: Vec3,
+    pub exercise_id: u32,
 }
 
 /// Returns the combo multiplier for the given combo count.
@@ -41,16 +42,23 @@ fn combo_multiplier(combo: u32) -> f32 {
 fn process_pending_answer(
     mut commands: Commands,
     pending: Option<Res<PendingAnswer>>,
-    active: Option<ResMut<ActiveExercise>>,
+    mut exercises: Query<(Entity, &ExerciseId, &mut ActiveExercise)>,
     mut session: ResMut<GameSession>,
-    panels: Query<Entity, With<AnswerPanel>>,
-    poles: Query<Entity, With<PanelPole>>,
+    panels: Query<(Entity, &AnswerPanel)>,
+    poles: Query<(Entity, &ExerciseId), With<PanelPole>>,
+    question_texts: Query<(Entity, &QuestionText)>,
+    timer_texts: Query<(Entity, &TimerText)>,
     mut burst_events: MessageWriter<ParticleBurstEvent>,
 ) {
     let Some(answer) = pending else {
         return;
     };
-    let Some(mut exercise) = active else {
+
+    // Find the exercise entity matching the pending answer
+    let Some((exercise_entity, _, mut exercise)) = exercises
+        .iter_mut()
+        .find(|(_, eid, _)| eid.0 == answer.exercise_id)
+    else {
         commands.remove_resource::<PendingAnswer>();
         return;
     };
@@ -142,15 +150,30 @@ fn process_pending_answer(
         });
     }
 
-    // Despawn panels and poles
-    for entity in &panels {
-        commands.entity(entity).despawn();
+    // Despawn panels, poles, and text matching this exercise
+    for (entity, panel) in &panels {
+        if panel.exercise_id == answer.exercise_id {
+            commands.entity(entity).despawn();
+        }
     }
-    for entity in &poles {
-        commands.entity(entity).despawn();
+    for (entity, eid) in &poles {
+        if eid.0 == answer.exercise_id {
+            commands.entity(entity).despawn();
+        }
+    }
+    for (entity, qt) in &question_texts {
+        if qt.exercise_id == answer.exercise_id {
+            commands.entity(entity).despawn();
+        }
+    }
+    for (entity, tt) in &timer_texts {
+        if tt.exercise_id == answer.exercise_id {
+            commands.entity(entity).despawn();
+        }
     }
 
-    commands.remove_resource::<ActiveExercise>();
+    // Despawn the exercise entity
+    commands.entity(exercise_entity).despawn();
     commands.remove_resource::<PendingAnswer>();
 }
 
@@ -162,14 +185,15 @@ fn check_game_over(session: Res<GameSession>, mut next_state: ResMut<NextState<G
 
 fn check_round_complete(
     session: Res<GameSession>,
-    active: Option<Res<ActiveExercise>>,
+    active_exercises_query: Query<&ActiveExercise>,
+    active_exercises: Res<ActiveExercises>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     // Only check when no exercise is active (all exercises done)
-    if active.is_some() {
+    if !active_exercises_query.is_empty() {
         return;
     }
-    if session.current_index >= session.total_exercises && session.coins > 0 {
+    if active_exercises.total_engaged >= session.total_exercises && session.coins > 0 {
         // Round complete - go to game over screen (will show stats)
         next_state.set(GameState::GameOver);
     }

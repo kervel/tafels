@@ -5,7 +5,6 @@ use bevy::prelude::*;
 
 use crate::camera::orbit::OrbitCamera;
 use crate::character::CharacterMarker;
-use crate::game::exercise::ActiveExercise;
 use crate::game::GameState;
 
 pub struct ProjectilePlugin;
@@ -49,7 +48,6 @@ pub struct ProjectileLifetime {
 fn spawn_ball(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
-    _active: Option<Res<ActiveExercise>>,
     existing_balls: Query<&Projectile>,
     character: Query<&Transform, With<CharacterMarker>>,
     camera: Query<(&Transform, &OrbitCamera), Without<CharacterMarker>>,

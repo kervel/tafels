@@ -1,3 +1,4 @@
+pub mod beacon;
 pub mod coins;
 pub mod difficulty;
 pub mod exercise;
@@ -14,11 +15,34 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.init_state::<GameState>()
             .insert_resource(GameSession::default())
+            .insert_resource(ActiveExercises::default())
             .add_plugins(exercise::ExercisePlugin)
             .add_plugins(panels::PanelPlugin)
             .add_plugins(scoring::ScoringPlugin)
             .add_plugins(coins::CoinPlugin)
+            .add_plugins(beacon::BeaconPlugin)
             .add_systems(OnEnter(GameState::Playing), init_game_session);
+    }
+}
+
+#[derive(Resource)]
+pub struct ActiveExercises {
+    pub total_engaged: u32,
+    pub total_spawned: u32,
+    pub target_concurrent: u32,
+    pub next_exercise_id: u32,
+    pub cooldown_timer: f32,
+}
+
+impl Default for ActiveExercises {
+    fn default() -> Self {
+        Self {
+            total_engaged: 0,
+            total_spawned: 0,
+            target_concurrent: 3,
+            next_exercise_id: 0,
+            cooldown_timer: 0.0,
+        }
     }
 }
 
@@ -42,12 +66,15 @@ pub struct GameSession {
     pub combo: u32,
     pub max_combo: u32,
     pub start_time: f64,
+    pub round_time_remaining: f32,
+    pub round_time_limit: f32,
 }
 
 impl Default for GameSession {
     fn default() -> Self {
+        let difficulty = Difficulty::Easy;
         Self {
-            difficulty: Difficulty::Easy,
+            difficulty,
             total_exercises: 20,
             current_index: 0,
             coins: 10,
@@ -57,11 +84,17 @@ impl Default for GameSession {
             combo: 0,
             max_combo: 0,
             start_time: 0.0,
+            round_time_remaining: difficulty.round_time(),
+            round_time_limit: difficulty.round_time(),
         }
     }
 }
 
-fn init_game_session(mut session: ResMut<GameSession>, time: Res<Time>) {
+fn init_game_session(
+    mut session: ResMut<GameSession>,
+    mut active_exercises: ResMut<ActiveExercises>,
+    time: Res<Time>,
+) {
     session.current_index = 0;
     session.coins = 10;
     session.correct_count = 0;
@@ -70,4 +103,8 @@ fn init_game_session(mut session: ResMut<GameSession>, time: Res<Time>) {
     session.combo = 0;
     session.max_combo = 0;
     session.start_time = time.elapsed_secs_f64();
+    session.round_time_remaining = session.difficulty.round_time();
+    session.round_time_limit = session.difficulty.round_time();
+
+    *active_exercises = ActiveExercises::default();
 }

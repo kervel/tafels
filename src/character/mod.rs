@@ -75,7 +75,7 @@ fn spawn_character(
         SceneRoot(asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/char_adventurer/char_adventurer.glb"))),
         Transform::from_translation(spawn_pos).with_scale(Vec3::splat(1.0)),
         CharacterMarker,
-        CharacterController { speed: 8.0 },
+        CharacterController { speed: 28.0 },
         MovementInput::default(),
         CharacterState::default(),
     ));

@@ -90,10 +90,13 @@ pub fn camera_follow(
             orbit.target = char_entity;
         }
 
-        // Update the last known movement yaw when character is walking
-        // This prevents the feedback loop: we only track actual movement direction,
-        // not the camera-relative rotation of the character
-        if *char_state == CharacterState::Walking && move_input.direction.length_squared() > 0.01 {
+        // Update the last known movement yaw when character is walking FORWARD.
+        // Skip backwards/strafe-only movement so the camera doesn't swing around
+        // when the player backs up toward an exercise beacon.
+        if *char_state == CharacterState::Walking
+            && move_input.direction.length_squared() > 0.01
+            && move_input.direction.y > -0.1
+        {
             // Compute the world-space movement direction from input + camera yaw
             let forward = Vec3::new(-orbit.yaw.sin(), 0.0, -orbit.yaw.cos());
             let right = Vec3::new(orbit.yaw.cos(), 0.0, -orbit.yaw.sin());

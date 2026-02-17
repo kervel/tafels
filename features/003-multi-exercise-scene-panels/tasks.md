@@ -20,7 +20,7 @@
 
 > **CHECKPOINT:** After Phase 1, the game plays exactly as before — single exercise at a time, same scoring, same HUD. Only internal architecture changed. `cargo run` and play a round to verify.
 
-### T001: Create ExerciseId component and add to exercise entities
+### [X] T001: Create ExerciseId component and add to exercise entities
 - **File:** `src/game/exercise.rs`
 - **Do:**
   - Add `#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)] pub struct ExerciseId(pub u32);`
@@ -28,7 +28,7 @@
   - When spawning an exercise in `check_exercise_spawn`, assign the next `ExerciseId` and increment the counter
 - **Depends on:** Nothing
 
-### T002: Convert ActiveExercise from Resource to Component
+### [X] T002: Convert ActiveExercise from Resource to Component
 - **File:** `src/game/exercise.rs`
 - **Do:**
   - Change `ActiveExercise` from `#[derive(Resource)]` to `#[derive(Component)]`
@@ -36,7 +36,7 @@
   - Store the exercise entity's position in the Transform (center of the panel arc)
 - **Depends on:** T001
 
-### T003: Add ExerciseId to AnswerPanel component
+### [X] T003: Add ExerciseId to AnswerPanel component
 - **File:** `src/game/panels.rs`
 - **Do:**
   - Add `pub exercise_id: u32` field to `AnswerPanel` struct
@@ -45,7 +45,7 @@
   - Also add `ExerciseId` component to `PanelPole` entities for targeted despawn
 - **Depends on:** T001
 
-### T004: Update check_exercise_spawn to pass ExerciseId to panels [P]
+### [X] T004: Update check_exercise_spawn to pass ExerciseId to panels [P]
 - **File:** `src/game/exercise.rs`
 - **Do:**
   - Update the call to `spawn_answer_panels` to pass the current `ExerciseId` value
@@ -53,7 +53,7 @@
   - Spawn condition: `query.is_empty()` instead of `active.is_none()`
 - **Depends on:** T002, T003
 
-### T005: Add ExerciseId to PendingAnswer and update collision
+### [X] T005: Add ExerciseId to PendingAnswer and update collision
 - **File:** `src/projectile/collision.rs`
 - **Do:**
   - Add `pub exercise_id: u32` field to `PendingAnswer` struct
@@ -61,7 +61,7 @@
   - Pass it to `PendingAnswer` when inserting the resource
 - **Depends on:** T003
 
-### T006: Update scoring to use ExerciseId for targeted despawn
+### [X] T006: Update scoring to use ExerciseId for targeted despawn
 - **File:** `src/game/scoring.rs`
 - **Do:**
   - In `process_pending_answer`:
@@ -72,7 +72,7 @@
   - Update references from `Res<ActiveExercise>` to the entity query
 - **Depends on:** T004, T005
 
-### T007: Refactor tick_exercise_timer to iterate exercise entities
+### [X] T007: Refactor tick_exercise_timer to iterate exercise entities
 - **File:** `src/game/exercise.rs`
 - **Do:**
   - Change `tick_exercise_timer` from reading `ResMut<ActiveExercise>` to iterating `Query<(Entity, &ExerciseId, &mut ActiveExercise)>`
@@ -81,7 +81,7 @@
   - Remove the `commands.remove_resource::<ActiveExercise>()` call (no longer a resource)
 - **Depends on:** T004
 
-### T008: Update HUD systems to query exercise entity instead of resource
+### [X] T008: Update HUD systems to query exercise entity instead of resource
 - **File:** `src/hud/mod.rs`
 - **Do:**
   - Change `update_timer_display` to query `Query<&ActiveExercise>` — use `.iter().next()` for now (still single exercise in Phase 1)
@@ -89,7 +89,7 @@
   - Handle case where query is empty (no active exercise) — hide timer/question
 - **Depends on:** T002
 
-### T009: Verify Phase 1 — play a full round
+### [X] T009: Verify Phase 1 — play a full round
 - **Action:** `cargo run`, select difficulty, play through 5+ exercises
 - **Verify:**
   - Exercises spawn one at a time (as before)
@@ -110,7 +110,7 @@
 
 > **CHECKPOINT:** After Phase 2, 3 exercises are visible simultaneously. Answering one spawns a replacement. Round ends after 20 engagements.
 
-### T010: Create ActiveExercises resource
+### [X] T010: Create ActiveExercises resource
 - **File:** `src/game/mod.rs`
 - **Do:**
   - Define `ActiveExercises` resource with fields: `total_engaged: u32`, `total_spawned: u32`, `target_concurrent: u32` (default 3), `next_exercise_id: u32`, `cooldown_timer: f32`
@@ -118,7 +118,7 @@
   - Remove the temporary `next_exercise_id` from `ExerciseSpawnState` (T001)
 - **Depends on:** T009
 
-### T011: Create beacon.rs with BeaconPlugin and spawn_beacon system
+### [X] T011: Create beacon.rs with BeaconPlugin and spawn_beacon system
 - **File:** `src/game/beacon.rs` (NEW)
 - **Do:**
   - Create `BeaconPlugin` struct implementing `Plugin`
@@ -139,7 +139,7 @@
   - Determine facing direction: random yaw at spawn time, panels face this direction
 - **Depends on:** T010
 
-### T012: Remove old check_exercise_spawn from exercise.rs
+### [X] T012: Remove old check_exercise_spawn from exercise.rs
 - **File:** `src/game/exercise.rs`
 - **Do:**
   - Remove the `check_exercise_spawn` system function
@@ -148,14 +148,14 @@
   - Keep `generate_exercise`, `tick_exercise_timer`, and `ActiveExercise` component
 - **Depends on:** T011
 
-### T013: Register BeaconPlugin in GamePlugin
+### [X] T013: Register BeaconPlugin in GamePlugin
 - **File:** `src/game/mod.rs`
 - **Do:**
   - Add `mod beacon;` declaration
   - Register `beacon::BeaconPlugin` in `GamePlugin::build()`
 - **Depends on:** T011
 
-### T014: Update round tracking to use total_engaged [P]
+### [X] T014: Update round tracking to use total_engaged [P]
 - **File:** `src/game/scoring.rs`
 - **Do:**
   - In `process_pending_answer`: after processing an answer, increment `active_exercises.total_engaged`
@@ -163,7 +163,7 @@
   - Keep `session.current_index` incrementing too (for game over screen stats)
 - **Depends on:** T010
 
-### T015: Verify Phase 2 — multiple exercises visible
+### [X] T015: Verify Phase 2 — multiple exercises visible
 - **Action:** `cargo run`, select difficulty, observe landscape
 - **Verify:**
   - 3 exercises visible simultaneously at scattered positions
@@ -185,7 +185,7 @@
 
 > **CHECKPOINT:** After Phase 3, beacons appear as glowing orbs. Walking toward one from the front reveals the exercise. Beacons vanish after world-lifetime. Timer starts on proximity.
 
-### T016: Add BeaconState and WorldLifetime components
+### [X] T016: Add BeaconState and WorldLifetime components
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - Define `#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)] pub enum BeaconState { Dormant, Activated, Resolved }`
@@ -195,7 +195,7 @@
   - Add `BeaconState::Dormant`, `WorldLifetime { remaining: rand 30.0..60.0 }`, and `BeaconFacing` to spawned exercise entities
 - **Depends on:** T015
 
-### T017: Create beacon visual mesh (emissive orb/pillar)
+### [X] T017: Create beacon visual mesh (emissive orb/pillar)
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - On beacon spawn (in `spawn_beacon`), create a child entity with:
@@ -207,7 +207,7 @@
   - Do NOT spawn answer panels yet (panels spawned on activation, not at beacon spawn)
 - **Depends on:** T016
 
-### T018: Refactor spawn_beacon to defer panel spawning
+### [X] T018: Refactor spawn_beacon to defer panel spawning
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - Remove the call to `spawn_answer_panels` from `spawn_beacon`
@@ -215,7 +215,7 @@
   - Panels will be spawned in T020 on activation
 - **Depends on:** T017
 
-### T019: Create tick_world_lifetime system
+### [X] T019: Create tick_world_lifetime system
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - Query `(Entity, &BeaconState, &mut WorldLifetime)` where `BeaconState == Dormant`
@@ -226,7 +226,7 @@
   - Register system in `BeaconPlugin` for `Update, GameState::Playing`
 - **Depends on:** T016
 
-### T020: Create check_proximity_trigger system
+### [X] T020: Create check_proximity_trigger system
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - Query all `(Entity, &ExerciseId, &BeaconState, &BeaconFacing, &Transform, &mut ActiveExercise)` where `BeaconState == Dormant`
@@ -244,7 +244,7 @@
   - Register system in `BeaconPlugin`
 - **Depends on:** T018
 
-### T021: Modify tick_exercise_timer to only tick Activated beacons
+### [X] T021: Modify tick_exercise_timer to only tick Activated beacons
 - **File:** `src/game/exercise.rs`
 - **Do:**
   - Change query in `tick_exercise_timer` to include `&BeaconState` filter
@@ -252,7 +252,7 @@
   - Import `BeaconState` from `beacon.rs` (make it pub)
 - **Depends on:** T016
 
-### T022: Update spawn replenishment logic
+### [X] T022: Update spawn replenishment logic
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - In `spawn_beacon` system: count total beacons as `Dormant + Activated` (not just ActiveExercise entities)
@@ -260,7 +260,7 @@
   - Also reset `cooldown_timer` when a beacon vanishes or an exercise resolves (via checking count each frame)
 - **Depends on:** T019, T020
 
-### T023: Verify Phase 3 — beacon + proximity gameplay
+### [X] T023: Verify Phase 3 — beacon + proximity gameplay
 - **Action:** `cargo run`, play a round
 - **Verify:**
   - Beacons appear as glowing orbs/pillars in the landscape
@@ -283,7 +283,7 @@
 
 > **CHECKPOINT:** After Phase 4, each activated exercise shows "7 x 8 = ?" and "10s" floating above the panels. Timer counts down with color changes.
 
-### T024: Extend bitmap font system with render_text_texture [P]
+### [X] T024: Extend bitmap font system with render_text_texture [P]
 - **File:** `src/game/panels.rs`
 - **Do:**
   - Add bitmaps for characters: `x` (multiply), `/` (divide), `=`, `?`, `s`, ` ` (space), `-` (minus) to the existing `DIGIT_BITMAPS` or a new `CHAR_BITMAPS` table
@@ -295,7 +295,7 @@
   - Keep `render_number_texture` working for backward compat (it can call `render_text_texture` internally)
 - **Depends on:** T015 (can be done in parallel with Phase 3 tasks)
 
-### T025: Create QuestionText and TimerText components
+### [X] T025: Create QuestionText and TimerText components
 - **File:** `src/game/panels.rs`
 - **Do:**
   - Define `#[derive(Component)] pub struct QuestionText { pub exercise_id: u32 }`
@@ -311,7 +311,7 @@
     - Position: below question text, offset Y +3.5m from ground
 - **Depends on:** T024
 
-### T026: Spawn 3D text on exercise activation
+### [X] T026: Spawn 3D text on exercise activation
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - In `check_proximity_trigger`, after spawning panels:
@@ -320,7 +320,7 @@
     - Position both using the beacon's Transform and BeaconFacing for rotation
 - **Depends on:** T025, T020
 
-### T027: Create update_timer_text system
+### [X] T027: Create update_timer_text system
 - **File:** `src/game/beacon.rs` or `src/game/panels.rs`
 - **Do:**
   - Query `(Entity, &mut TimerText, &MeshMaterial3d<StandardMaterial>)` and corresponding `ActiveExercise`
@@ -330,7 +330,7 @@
   - Register system in appropriate plugin for `Update, GameState::Playing`
 - **Depends on:** T025
 
-### T028: Despawn text entities on exercise resolution [P]
+### [X] T028: Despawn text entities on exercise resolution [P]
 - **File:** `src/game/scoring.rs` and `src/game/exercise.rs`
 - **Do:**
   - In `process_pending_answer`: also despawn `QuestionText` and `TimerText` entities matching the exercise_id
@@ -338,7 +338,7 @@
   - Query `(Entity, &QuestionText)` and `(Entity, &TimerText)` filtered by exercise_id
 - **Depends on:** T025
 
-### T029: Verify Phase 4 — 3D text visible and updating
+### [X] T029: Verify Phase 4 — 3D text visible and updating
 - **Action:** `cargo run`, approach a beacon, observe text
 - **Verify:**
   - Question text (e.g. "7 x 8 = ?") appears above panels on activation
@@ -359,7 +359,7 @@
 
 > **CHECKPOINT:** After Phase 5, HUD shows only coins, combo, and progress. No question or timer on screen.
 
-### T030: Remove exercise-specific HUD elements
+### [X] T030: Remove exercise-specific HUD elements
 - **File:** `src/hud/mod.rs`
 - **Do:**
   - Remove `QuestionDisplay` component, its spawn in `setup_hud`, and `update_question_display` system
@@ -372,7 +372,7 @@
   - Update `ProgressDisplay` to read from `ActiveExercises.total_engaged` instead of `session.current_index`
 - **Depends on:** T029 (text is now in 3D world, safe to remove from HUD)
 
-### T031: Verify Phase 5 — minimal HUD
+### [X] T031: Verify Phase 5 — minimal HUD
 - **Action:** `cargo run`, play a round
 - **Verify:**
   - HUD shows: coin counter, combo display (when combo >= 2), progress counter (e.g. "5 / 20")
@@ -392,7 +392,7 @@
 
 > **CHECKPOINT:** After Phase 6, full end-to-end gameplay. Beacons pulse before vanishing. Reveal animation. Performance validated.
 
-### T032: Add beacon urgency visual (pulse + flicker)
+### [X] T032: Add beacon urgency visual (pulse + flicker)
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - In `tick_world_lifetime` or a new `animate_beacons` system:
@@ -403,7 +403,7 @@
   - Add `initial_lifetime: f32` field to `WorldLifetime` to compute fraction
 - **Depends on:** T031
 
-### T033: Add beacon bob animation and color variety [P]
+### [X] T033: Add beacon bob animation and color variety [P]
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - In `animate_beacons` system (or extend it):
@@ -411,7 +411,7 @@
   - In `spawn_beacon`: randomize the neon color from `NEON_COLORS` palette for each beacon
 - **Depends on:** T032
 
-### T034: Add reveal particle burst on proximity trigger [P]
+### [X] T034: Add reveal particle burst on proximity trigger [P]
 - **File:** `src/game/beacon.rs`
 - **Do:**
   - In `check_proximity_trigger`, when activation occurs:
@@ -420,7 +420,7 @@
   - This provides the "playful visual feedback" from the spec
 - **Depends on:** T020
 
-### T035: Performance validation and parameter tuning
+### [X] T035: Performance validation and parameter tuning
 - **Action:** `cargo run` on target hardware (Intel Iris Xe)
 - **Verify:**
   - FPS stays >20 with 3 concurrent beacons (mix of dormant + activated)

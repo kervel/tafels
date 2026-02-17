@@ -3,21 +3,22 @@ use rand::prelude::*;
 
 use super::difficulty::Difficulty;
 use super::GameSession;
-use crate::character::CharacterMarker;
 use crate::effects::particles::ParticleBurstEvent;
 
 pub struct ExercisePlugin;
 
 impl Plugin for ExercisePlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ExerciseSpawnState::default())
-            .add_systems(
-                Update,
-                (check_exercise_spawn, tick_exercise_timer)
-                    .run_if(in_state(super::GameState::Playing)),
-            );
+        app.add_systems(
+            Update,
+            (tick_exercise_timer, tick_round_timer)
+                .run_if(in_state(super::GameState::Playing)),
+        );
     }
 }
+
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ExerciseId(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operation {
@@ -27,12 +28,13 @@ pub enum Operation {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExerciseState {
+    Pending,
     Active,
     Answered,
     TimedOut,
 }
 
-#[derive(Resource)]
+#[derive(Component)]
 pub struct ActiveExercise {
     pub operation: Operation,
     pub operand_a: u32,
@@ -42,23 +44,6 @@ pub struct ActiveExercise {
     pub time_remaining: f32,
     pub time_limit: f32,
     pub state: ExerciseState,
-}
-
-#[derive(Resource)]
-pub struct ExerciseSpawnState {
-    pub cooldown: f32,
-    pub last_spawn_pos: Vec3,
-    pub exercises_started: bool,
-}
-
-impl Default for ExerciseSpawnState {
-    fn default() -> Self {
-        Self {
-            cooldown: 3.0,
-            last_spawn_pos: Vec3::ZERO,
-            exercises_started: false,
-        }
-    }
 }
 
 pub fn generate_exercise(difficulty: &Difficulty) -> ActiveExercise {
@@ -119,7 +104,7 @@ pub fn generate_exercise(difficulty: &Difficulty) -> ActiveExercise {
         choices,
         time_remaining: timer,
         time_limit: timer,
-        state: ExerciseState::Active,
+        state: ExerciseState::Pending,
     }
 }
 
@@ -132,112 +117,84 @@ impl ActiveExercise {
     }
 }
 
-fn check_exercise_spawn(
-    mut commands: Commands,
-    time: Res<Time>,
-    session: Res<GameSession>,
-    active: Option<Res<ActiveExercise>>,
-    mut spawn_state: ResMut<ExerciseSpawnState>,
-    character: Query<&Transform, With<CharacterMarker>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut images: ResMut<Assets<Image>>,
-    terrain: Option<Res<crate::terrain::TerrainResource>>,
-) {
-    if active.is_some() {
-        return;
-    }
-
-    if session.current_index >= session.total_exercises {
-        return;
-    }
-
-    spawn_state.cooldown -= time.delta_secs();
-
-    let Ok(char_tf) = character.single() else {
-        return;
-    };
-
-    let walked_far = char_tf
-        .translation
-        .distance(spawn_state.last_spawn_pos)
-        > 6.0;
-
-    if spawn_state.cooldown <= 0.0 || (walked_far && spawn_state.exercises_started) {
-        let exercise = generate_exercise(&session.difficulty);
-
-        let char_forward = char_tf.rotation * Vec3::NEG_Z;
-        let spawn_center = char_tf.translation + char_forward.normalize_or_zero() * 20.0;
-
-        let Some(ref terrain) = terrain else {
-            return;
-        };
-
-        super::panels::spawn_answer_panels(
-            &mut commands,
-            &mut meshes,
-            &mut materials,
-            &mut images,
-            &terrain.heightmap,
-            spawn_center,
-            char_tf.translation,
-            &exercise.choices,
-            exercise.correct_answer,
-        );
-
-        commands.insert_resource(exercise);
-        spawn_state.cooldown = 5.0;
-        spawn_state.last_spawn_pos = char_tf.translation;
-        spawn_state.exercises_started = true;
-    }
-}
-
 fn tick_exercise_timer(
     mut commands: Commands,
     time: Res<Time>,
-    active: Option<ResMut<ActiveExercise>>,
+    mut exercises: Query<(Entity, &ExerciseId, &mut ActiveExercise, &super::beacon::BeaconState)>,
     mut session: ResMut<GameSession>,
-    panels: Query<(Entity, &Transform), With<super::panels::AnswerPanel>>,
-    poles: Query<Entity, With<super::panels::PanelPole>>,
+    panels: Query<(Entity, &Transform, &super::panels::AnswerPanel)>,
+    poles: Query<(Entity, &ExerciseId), With<super::panels::PanelPole>>,
+    question_texts: Query<(Entity, &super::panels::QuestionText)>,
+    timer_texts: Query<(Entity, &super::panels::TimerText)>,
     mut burst_events: MessageWriter<ParticleBurstEvent>,
 ) {
-    let Some(mut exercise) = active else {
-        return;
-    };
+    for (exercise_entity, exercise_eid, mut exercise, beacon_state) in &mut exercises {
+        // Only tick timer for activated beacons
+        if *beacon_state != super::beacon::BeaconState::Activated {
+            continue;
+        }
+        if exercise.state != ExerciseState::Active {
+            continue;
+        }
 
-    if exercise.state != ExerciseState::Active {
-        return;
+        exercise.time_remaining -= time.delta_secs();
+
+        if exercise.time_remaining <= 0.0 {
+            exercise.state = ExerciseState::TimedOut;
+            session.timeout_count += 1;
+            session.current_index += 1;
+            session.coins -= 3;
+            session.combo = 0;
+
+            // Orange timeout particles at each panel matching this exercise
+            for (_entity, panel_tf, panel) in &panels {
+                if panel.exercise_id == exercise_eid.0 {
+                    burst_events.write(ParticleBurstEvent {
+                        position: panel_tf.translation,
+                        color: Color::srgb(1.0, 0.5, 0.0),
+                        count: 25,
+                        speed: 6.0,
+                        lifetime: 1.0,
+                        size: 0.15,
+                    });
+                }
+            }
+
+            // Despawn panels, poles, and text matching this exercise
+            for (entity, _, panel) in &panels {
+                if panel.exercise_id == exercise_eid.0 {
+                    commands.entity(entity).despawn();
+                }
+            }
+            for (entity, pole_eid) in &poles {
+                if pole_eid.0 == exercise_eid.0 {
+                    commands.entity(entity).despawn();
+                }
+            }
+            for (entity, qt) in &question_texts {
+                if qt.exercise_id == exercise_eid.0 {
+                    commands.entity(entity).despawn();
+                }
+            }
+            for (entity, tt) in &timer_texts {
+                if tt.exercise_id == exercise_eid.0 {
+                    commands.entity(entity).despawn();
+                }
+            }
+
+            commands.entity(exercise_entity).despawn();
+        }
     }
+}
 
-    exercise.time_remaining -= time.delta_secs();
-
-    if exercise.time_remaining <= 0.0 {
-        exercise.state = ExerciseState::TimedOut;
-        session.timeout_count += 1;
-        session.current_index += 1;
-        session.coins -= 3;
-        session.combo = 0;
-
-        // Orange timeout particles at each panel
-        for (_entity, panel_tf) in &panels {
-            burst_events.write(ParticleBurstEvent {
-                position: panel_tf.translation,
-                color: Color::srgb(1.0, 0.5, 0.0),
-                count: 25,
-                speed: 6.0,
-                lifetime: 1.0,
-                size: 0.15,
-            });
-        }
-
-        // Despawn panels and poles
-        for (entity, _) in &panels {
-            commands.entity(entity).despawn();
-        }
-        for entity in &poles {
-            commands.entity(entity).despawn();
-        }
-
-        commands.remove_resource::<ActiveExercise>();
+fn tick_round_timer(
+    time: Res<Time>,
+    mut session: ResMut<GameSession>,
+    mut next_state: ResMut<NextState<super::GameState>>,
+) {
+    session.round_time_remaining -= time.delta_secs();
+    if session.round_time_remaining <= 0.0 {
+        session.round_time_remaining = 0.0;
+        next_state.set(super::GameState::GameOver);
     }
 }

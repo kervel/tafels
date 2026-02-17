@@ -41,6 +41,7 @@ pub fn check_ball_panel_collision(
                     value: panel.value,
                     is_correct: panel.is_correct,
                     hit_position: panel_tf.translation,
+                    exercise_id: panel.exercise_id,
                 });
 
                 // Despawn the ball

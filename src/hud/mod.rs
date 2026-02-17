@@ -2,7 +2,7 @@ pub mod screens;
 
 use bevy::prelude::*;
 
-use crate::game::exercise::ActiveExercise;
+use crate::game::ActiveExercises;
 use crate::game::GameSession;
 use crate::game::GameState;
 
@@ -16,10 +16,9 @@ impl Plugin for HudPlugin {
                 Update,
                 (
                     update_coin_display,
-                    update_timer_display,
-                    update_question_display,
                     update_progress_display,
                     update_combo_display,
+                    update_round_timer,
                     show_answer_feedback,
                     tick_feedback,
                 )
@@ -36,19 +35,16 @@ struct HudRoot;
 struct CoinDisplay;
 
 #[derive(Component)]
-struct TimerDisplay;
-
-#[derive(Component)]
-struct TimerBar;
-
-#[derive(Component)]
-struct QuestionDisplay;
-
-#[derive(Component)]
 struct ProgressDisplay;
 
 #[derive(Component)]
 struct ComboDisplay;
+
+#[derive(Component)]
+struct RoundTimerBar;
+
+#[derive(Component)]
+struct RoundTimerText;
 
 #[derive(Component)]
 struct FeedbackPopup {
@@ -67,7 +63,7 @@ fn spawn_hud(mut commands: Commands) {
             },
         ))
         .with_children(|parent| {
-            // Top bar: coins (left), timer (center), combo + progress (right)
+            // Top bar: coins (left), combo + progress (right)
             parent
                 .spawn((
                     Node {
@@ -93,36 +89,16 @@ fn spawn_hud(mut commands: Commands) {
                         TextColor(Color::srgb(1.0, 0.85, 0.0)),
                     ));
 
-                    // Timer bar container (center)
-                    top_bar
-                        .spawn(Node {
-                            width: Val::Px(300.0),
-                            height: Val::Px(20.0),
+                    // Round timer text
+                    top_bar.spawn((
+                        RoundTimerText,
+                        Text::new("3:00"),
+                        TextFont {
+                            font_size: 26.0,
                             ..default()
-                        })
-                        .with_children(|timer_container| {
-                            // Timer background
-                            timer_container.spawn((
-                                Node {
-                                    width: Val::Percent(100.0),
-                                    height: Val::Percent(100.0),
-                                    position_type: PositionType::Absolute,
-                                    ..default()
-                                },
-                                BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5)),
-                            ));
-
-                            // Timer fill
-                            timer_container.spawn((
-                                TimerBar,
-                                Node {
-                                    width: Val::Percent(100.0),
-                                    height: Val::Percent(100.0),
-                                    ..default()
-                                },
-                                BackgroundColor(Color::srgb(0.2, 0.9, 0.2)),
-                            ));
-                        });
+                        },
+                        TextColor(Color::srgb(0.2, 0.9, 0.2)),
+                    ));
 
                     // Right section: combo + progress
                     top_bar
@@ -147,7 +123,7 @@ fn spawn_hud(mut commands: Commands) {
                             // Progress counter
                             right.spawn((
                                 ProgressDisplay,
-                                Text::new("Question 0 / 20"),
+                                Text::new("0 / 20"),
                                 TextFont {
                                     font_size: 22.0,
                                     ..default()
@@ -157,37 +133,35 @@ fn spawn_hud(mut commands: Commands) {
                         });
                 });
 
-            // Question text (centered, below top bar)
-            parent.spawn((
-                QuestionDisplay,
-                Text::new(""),
-                TextFont {
-                    font_size: 36.0,
+            // Round timer bar (full width, below top bar)
+            parent
+                .spawn(Node {
+                    width: Val::Percent(100.0),
+                    height: Val::Px(6.0),
                     ..default()
-                },
-                TextColor(Color::srgb(0.3, 1.0, 0.5)),
-                Node {
-                    align_self: AlignSelf::Center,
-                    margin: UiRect::top(Val::Px(20.0)),
-                    ..default()
-                },
-            ));
-
-            // Timer text below question
-            parent.spawn((
-                TimerDisplay,
-                Text::new(""),
-                TextFont {
-                    font_size: 24.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(1.0, 1.0, 0.5)),
-                Node {
-                    align_self: AlignSelf::Center,
-                    margin: UiRect::top(Val::Px(5.0)),
-                    ..default()
-                },
-            ));
+                })
+                .with_children(|bar_container| {
+                    // Background
+                    bar_container.spawn((
+                        Node {
+                            width: Val::Percent(100.0),
+                            height: Val::Percent(100.0),
+                            position_type: PositionType::Absolute,
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.2, 0.2, 0.2, 0.5)),
+                    ));
+                    // Fill
+                    bar_container.spawn((
+                        RoundTimerBar,
+                        Node {
+                            width: Val::Percent(100.0),
+                            height: Val::Percent(100.0),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgb(0.2, 0.9, 0.2)),
+                    ));
+                });
         });
 }
 
@@ -203,59 +177,15 @@ fn update_coin_display(session: Res<GameSession>, mut query: Query<&mut Text, Wi
     }
 }
 
-fn update_timer_display(
-    active: Option<Res<ActiveExercise>>,
-    mut text_query: Query<&mut Text, With<TimerDisplay>>,
-    mut bar_query: Query<(&mut Node, &mut BackgroundColor), With<TimerBar>>,
-) {
-    if let Some(exercise) = active {
-        let fraction = (exercise.time_remaining / exercise.time_limit).clamp(0.0, 1.0);
-
-        for mut text in &mut text_query {
-            **text = format!("{:.1}s", exercise.time_remaining.max(0.0));
-        }
-
-        for (mut node, mut bg) in &mut bar_query {
-            node.width = Val::Percent(fraction * 100.0);
-            *bg = if fraction > 0.5 {
-                BackgroundColor(Color::srgb(0.2, 0.9, 0.2))
-            } else if fraction > 0.25 {
-                BackgroundColor(Color::srgb(0.9, 0.9, 0.2))
-            } else {
-                BackgroundColor(Color::srgb(0.9, 0.2, 0.2))
-            };
-        }
-    } else {
-        for mut text in &mut text_query {
-            **text = String::new();
-        }
-        for (mut node, _bg) in &mut bar_query {
-            node.width = Val::Percent(0.0);
-        }
-    }
-}
-
-fn update_question_display(
-    active: Option<Res<ActiveExercise>>,
-    mut query: Query<&mut Text, With<QuestionDisplay>>,
-) {
-    for mut text in &mut query {
-        if let Some(ref exercise) = active {
-            **text = exercise.question_text();
-        } else {
-            **text = String::new();
-        }
-    }
-}
-
 fn update_progress_display(
+    active_exercises: Res<ActiveExercises>,
     session: Res<GameSession>,
     mut query: Query<&mut Text, With<ProgressDisplay>>,
 ) {
     for mut text in &mut query {
         **text = format!(
-            "Question {} / {}",
-            session.current_index, session.total_exercises
+            "{} / {}",
+            active_exercises.total_engaged, session.total_exercises
         );
     }
 }
@@ -281,6 +211,39 @@ fn update_combo_display(
         } else {
             **text = String::new();
         }
+    }
+}
+
+fn update_round_timer(
+    session: Res<GameSession>,
+    mut text_query: Query<(&mut Text, &mut TextColor), With<RoundTimerText>>,
+    mut bar_query: Query<(&mut Node, &mut BackgroundColor), With<RoundTimerBar>>,
+) {
+    let remaining = session.round_time_remaining.max(0.0);
+    let fraction = (remaining / session.round_time_limit).clamp(0.0, 1.0);
+    let minutes = (remaining / 60.0).floor() as u32;
+    let seconds = (remaining % 60.0).floor() as u32;
+
+    for (mut text, mut color) in &mut text_query {
+        **text = format!("{}:{:02}", minutes, seconds);
+        color.0 = if fraction > 0.5 {
+            Color::srgb(0.2, 0.9, 0.2) // green
+        } else if fraction > 0.25 {
+            Color::srgb(0.9, 0.9, 0.2) // yellow
+        } else {
+            Color::srgb(0.9, 0.2, 0.2) // red
+        };
+    }
+
+    for (mut node, mut bg) in &mut bar_query {
+        node.width = Val::Percent(fraction * 100.0);
+        *bg = if fraction > 0.5 {
+            BackgroundColor(Color::srgb(0.2, 0.9, 0.2))
+        } else if fraction > 0.25 {
+            BackgroundColor(Color::srgb(0.9, 0.9, 0.2))
+        } else {
+            BackgroundColor(Color::srgb(0.9, 0.2, 0.2))
+        };
     }
 }
 
