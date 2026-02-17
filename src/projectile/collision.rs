@@ -6,7 +6,6 @@ use crate::game::exercise::{ActiveExercise, ExerciseId, ExerciseState};
 use crate::game::panels::AnswerPanel;
 use crate::game::scoring::PendingAnswer;
 use crate::game::{ActiveExercises, GameSession};
-use crate::effects::particles::{StyledParticleEvent, ParticleStyle};
 
 /// Check if the ball intersects with any answer panel.
 pub fn check_ball_panel_collision(
