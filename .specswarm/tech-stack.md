@@ -15,9 +15,10 @@
 
 ### Engine
 
-- **Bevy** (latest 0.15.x)
+- **Bevy** (latest 0.18.x)
   - Purpose: 3D rendering, ECS, asset management, input handling
   - Notes: Use official Bevy plugins where available before third-party
+  - Bevy 0.18 includes built-in atmospheric rendering (ScatteringMedium)
 
 ### Build Tool
 
@@ -33,8 +34,9 @@
 
 - **bevy_pbr** (built-in) - Physically-based rendering for materials
 - **bevy_gltf** (built-in) - Loading 3D models in glTF format
-- **bevy_atmosphere** or equivalent - Sky and atmospheric scattering
-- **bevy_terrain** or custom - Heightmap-based terrain generation
+- **Bevy built-in atmosphere** - Sky and atmospheric scattering (0.18+)
+- Custom heightmap terrain - No mature crate for Bevy 0.18; custom mesh generation
+- **noise** crate - Procedural terrain heightmap generation
 
 ### Terrain & Vegetation
 

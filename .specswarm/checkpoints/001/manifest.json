@@ -1,0 +1,18 @@
+[
+  {
+    "phase": "specify",
+    "timestamp": "2026-02-16T22:45:31+01:00"
+  },
+  {
+    "phase": "clarify",
+    "timestamp": "2026-02-16T22:45:39+01:00"
+  },
+  {
+    "phase": "plan",
+    "timestamp": "2026-02-16T22:45:45+01:00"
+  },
+  {
+    "phase": "tasks",
+    "timestamp": "2026-02-16T22:45:49+01:00"
+  }
+]

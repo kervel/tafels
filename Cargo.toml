@@ -1,0 +1,19 @@
+[package]
+name = "three_dt"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "3dt"
+path = "src/main.rs"
+
+[dependencies]
+bevy = { version = "0.18", features = ["jpeg", "bevy_dev_tools"] }
+noise = "0.9"
+rand = "0.8"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
