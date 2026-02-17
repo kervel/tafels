@@ -6,6 +6,7 @@ use crate::game::exercise::{ActiveExercise, ExerciseId, ExerciseState};
 use crate::game::panels::AnswerPanel;
 use crate::game::scoring::PendingAnswer;
 use crate::game::{ActiveExercises, GameSession};
+use crate::effects::particles::{StyledParticleEvent, ParticleStyle};
 
 /// Check if the ball intersects with any answer panel.
 pub fn check_ball_panel_collision(
@@ -158,15 +159,16 @@ pub fn check_ball_beacon_collision(
                 exercise_id.0,
             );
 
-            // Reveal particle burst
+            // Expanding ring — beacon activated by ball
             let neon = crate::game::panels::NEON_COLORS[exercise_id.0 as usize % crate::game::panels::NEON_COLORS.len()];
-            burst_events.write(crate::effects::particles::ParticleBurstEvent {
-                position: beacon_tf.translation + Vec3::Y * 2.0,
+            styled_events.write(crate::effects::particles::StyledParticleEvent {
+                position: beacon_tf.translation + Vec3::Y * 0.5,
                 color: Color::srgb(neon[0], neon[1], neon[2]),
-                count: 15,
-                speed: 3.0,
-                lifetime: 0.8,
-                size: 0.2,
+                count: 24,
+                speed: 5.0,
+                lifetime: 1.0,
+                size: 0.15,
+                style: crate::effects::particles::ParticleStyle::Ring,
             });
 
             // Despawn the ball
