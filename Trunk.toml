@@ -1,7 +1,10 @@
 [build]
 filehash = true
 
+[serve]
+no_spa = true
+
 [[hooks]]
 stage = "post_build"
 command = "bash"
-command_arguments = ["-c", "for f in ${TRUNK_STAGING_DIR}/*_bg.wasm; do wasm-opt -Oz -o \"$f\" \"$f\"; done && find ${TRUNK_STAGING_DIR} -type f \\( -name '*.wasm' -o -name '*.js' -o -name '*.html' -o -name '*.css' \\) -exec brotli -f -q 11 {} \\;"]
+command_arguments = ["-c", "if [ \"${TRUNK_PROFILE}\" = \"release\" ]; then for f in ${TRUNK_STAGING_DIR}/*_bg.wasm; do wasm-opt -Oz -o \"$f\" \"$f\"; done && find ${TRUNK_STAGING_DIR} -type f \\( -name '*.wasm' -o -name '*.js' -o -name '*.html' -o -name '*.css' \\) -exec brotli -f -q 11 {} \\;; fi"]

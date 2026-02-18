@@ -47,7 +47,7 @@ pub struct MovementInput {
     pub direction: Vec2,
 }
 
-#[derive(Component, Default, PartialEq, Clone, Copy)]
+#[derive(Component, Default, Debug, PartialEq, Clone, Copy)]
 pub enum CharacterState {
     #[default]
     Idle,
@@ -64,6 +64,8 @@ pub struct CharacterAnimations {
     pub walk_node: AnimationNodeIndex,
     pub run_node: AnimationNodeIndex,
     pub player_entity: Entity,
+    pub graph_handle: Handle<AnimationGraph>,
+    pub active_state: Option<CharacterState>,
 }
 
 fn spawn_character(

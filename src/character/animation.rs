@@ -5,15 +5,14 @@ use bevy::prelude::*;
 use super::{CharacterAnimations, CharacterMarker, CharacterState};
 
 /// Once the GLTF scene is spawned, find the AnimationPlayer child and set up
-/// the animation graph with Idle and Walk clips. Immediately starts the idle animation.
+/// the animation graph with Idle and Walk clips.
 pub fn setup_character_animations(
     mut commands: Commands,
     mut animation_graphs: ResMut<Assets<AnimationGraph>>,
     asset_server: Res<AssetServer>,
     characters: Query<Entity, (With<CharacterMarker>, Without<CharacterAnimations>)>,
     children: Query<&Children>,
-    mut player_query: Query<&mut AnimationPlayer>,
-    mut transitions_query: Query<&mut AnimationTransitions>,
+    player_query: Query<&AnimationPlayer>,
 ) {
     for character_entity in &characters {
         let Some(player_entity) =
@@ -47,7 +46,7 @@ pub fn setup_character_animations(
 
         commands
             .entity(player_entity)
-            .insert(AnimationGraphHandle(graph_handle))
+            .insert(AnimationGraphHandle(graph_handle.clone()))
             .insert(AnimationTransitions::new());
 
         commands.entity(character_entity).insert(CharacterAnimations {
@@ -55,23 +54,34 @@ pub fn setup_character_animations(
             walk_node,
             run_node,
             player_entity,
+            graph_handle,
+            active_state: None,
         });
+    }
+}
 
-        // Start idle animation immediately so the character isn't static on spawn
-        if let Ok(mut player) = player_query.get_mut(player_entity) {
-            if let Ok(mut transitions) = transitions_query.get_mut(player_entity) {
-                transitions
-                    .play(&mut player, idle_node, Duration::from_millis(200))
-                    .repeat();
+fn find_animation_player_mut(
+    entity: Entity,
+    children: &Query<&Children>,
+    players: &Query<&mut AnimationPlayer>,
+) -> Option<Entity> {
+    if players.get(entity).is_ok() {
+        return Some(entity);
+    }
+    if let Ok(kids) = children.get(entity) {
+        for child in kids.iter() {
+            if let Some(found) = find_animation_player_mut(child, children, players) {
+                return Some(found);
             }
         }
     }
+    None
 }
 
 fn find_animation_player(
     entity: Entity,
     children: &Query<&Children>,
-    player_check: &Query<&mut AnimationPlayer>,
+    player_check: &Query<&AnimationPlayer>,
 ) -> Option<Entity> {
     if player_check.get(entity).is_ok() {
         return Some(entity);
@@ -86,19 +96,52 @@ fn find_animation_player(
     None
 }
 
-/// Switch between Idle and Walk animations based on CharacterState changes.
+/// Re-discover the AnimationPlayer if the cached reference is stale,
+/// and apply animations based on CharacterState.
 pub fn animate_character(
-    characters: Query<(&CharacterState, &CharacterAnimations), Changed<CharacterState>>,
+    mut commands: Commands,
+    mut characters: Query<(
+        Entity,
+        &CharacterState,
+        &mut CharacterAnimations,
+    )>,
+    children: Query<&Children>,
     mut players: Query<&mut AnimationPlayer>,
     mut transitions: Query<&mut AnimationTransitions>,
 ) {
-    for (state, anims) in &characters {
+    for (char_entity, state, mut anims) in &mut characters {
+        // Check if cached player entity still has an AnimationPlayer
+        if players.get(anims.player_entity).is_err() {
+            // Re-discover the AnimationPlayer in the hierarchy
+            if let Some(new_player) =
+                find_animation_player_mut(char_entity, &children, &players)
+            {
+                if new_player != anims.player_entity {
+                    anims.player_entity = new_player;
+                    anims.active_state = None; // Force re-play after recovery
+                    commands
+                        .entity(new_player)
+                        .insert(AnimationGraphHandle(anims.graph_handle.clone()))
+                        .insert(AnimationTransitions::new());
+                    return; // Wait one frame for deferred commands to apply
+                }
+            }
+            continue;
+        }
+
+        // Only play when state actually changes
+        if anims.active_state == Some(*state) {
+            continue;
+        }
+
         let Ok(mut player) = players.get_mut(anims.player_entity) else {
             continue;
         };
         let Ok(mut transition) = transitions.get_mut(anims.player_entity) else {
             continue;
         };
+
+        anims.active_state = Some(*state);
 
         match state {
             CharacterState::Idle => {
