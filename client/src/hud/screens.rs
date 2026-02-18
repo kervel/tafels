@@ -3,6 +3,8 @@ use bevy::prelude::*;
 use crate::game::difficulty::Difficulty;
 use crate::game::{ForceSinglePlayer, GameSession, GameState, Leaderboard, MultiplayerRoundState};
 use crate::network::{RoundMessageBuffer, WsConnection};
+use crate::touch::TouchDevice;
+use crate::touch::keyboard::SoftKeyboardInput;
 use tafels_shared::protocol::{ClientMessage, encode};
 
 pub struct ScreensPlugin;
@@ -18,7 +20,8 @@ impl Plugin for ScreensPlugin {
             )
             .add_systems(
                 Update,
-                handle_name_input.run_if(in_state(GameState::Menu)),
+                (handle_name_input, handle_name_touch, handle_soft_keyboard_input)
+                    .run_if(in_state(GameState::Menu)),
             )
             .add_systems(OnEnter(GameState::GameOver), spawn_game_over_screen)
             .add_systems(OnExit(GameState::GameOver), despawn_game_over)
@@ -125,7 +128,7 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, force_sp
                 },
             ));
 
-            // Name input display
+            // Name input display (also a button for touch keyboard activation)
             let display_name = if session.player_name.is_empty() {
                 "_".to_string()
             } else {
@@ -133,6 +136,7 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, force_sp
             };
             parent.spawn((
                 NameInputDisplay,
+                Button,
                 Text::new(display_name),
                 TextFont {
                     font_size: 28.0,
@@ -302,6 +306,56 @@ fn handle_name_input(
     }
 }
 
+/// Show soft keyboard when name input is tapped on touch devices.
+fn handle_name_touch(
+    interaction: Query<&Interaction, (Changed<Interaction>, With<NameInputDisplay>)>,
+    touch_device: Res<TouchDevice>,
+) {
+    if !touch_device.detected {
+        return;
+    }
+    for inter in &interaction {
+        if *inter == Interaction::Pressed {
+            crate::touch::keyboard::show_soft_keyboard();
+        }
+    }
+}
+
+/// Read characters from the soft keyboard buffer into the player name.
+fn handle_soft_keyboard_input(
+    mut session: ResMut<GameSession>,
+    mut soft_kb: ResMut<SoftKeyboardInput>,
+    mut name_display: Query<&mut Text, With<NameInputDisplay>>,
+) {
+    if soft_kb.buffer.is_empty() {
+        return;
+    }
+
+    let mut changed = false;
+    for c in soft_kb.buffer.drain(..) {
+        if c == '\x08' {
+            // Backspace
+            session.player_name.pop();
+            changed = true;
+        } else if c.is_alphanumeric() || c == ' ' || c == '-' {
+            if session.player_name.len() < 20 {
+                session.player_name.push(c);
+                changed = true;
+            }
+        }
+    }
+
+    if changed {
+        for mut text in &mut name_display {
+            if session.player_name.is_empty() {
+                **text = "_".to_string();
+            } else {
+                **text = format!("{}_", session.player_name);
+            }
+        }
+    }
+}
+
 fn handle_menu_input(
     interaction: Query<(&Interaction, &DifficultyButton), Changed<Interaction>>,
     mut session: ResMut<GameSession>,
@@ -309,6 +363,7 @@ fn handle_menu_input(
 ) {
     for (interaction, button) in &interaction {
         if *interaction == Interaction::Pressed {
+            crate::touch::keyboard::hide_soft_keyboard();
             session.difficulty = button.0;
             next_state.set(GameState::Playing);
         }
@@ -436,7 +491,7 @@ fn spawn_lobby_screen(commands: &mut Commands) {
                     Button,
                     Node {
                         width: Val::Px(200.0),
-                        height: Val::Px(50.0),
+                        height: Val::Px(56.0),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
                         border: UiRect::all(Val::Px(2.0)),
@@ -723,9 +778,10 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>) {
                     Button,
                     Node {
                         width: Val::Px(200.0),
-                        height: Val::Px(50.0),
+                        height: Val::Px(56.0),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
+                        padding: UiRect::all(Val::Px(16.0)),
                         border: UiRect::all(Val::Px(2.0)),
                         ..default()
                     },

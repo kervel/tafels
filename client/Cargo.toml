@@ -19,4 +19,4 @@ postcard = { version = "1", features = ["alloc"] }
 getrandom = { version = "0.2", features = ["js"] }
 getrandom_0_3 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
 wasm-bindgen = "0.2"
-web-sys = { version = "0.3", features = ["Window", "Location"] }
+web-sys = { version = "0.3", features = ["Window", "Location", "Navigator", "Document", "HtmlInputElement", "HtmlElement", "Element", "EventTarget", "InputEvent"] }

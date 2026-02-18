@@ -55,6 +55,7 @@ pub struct ProjectileLifetime {
 fn spawn_ball(
     mut commands: Commands,
     keyboard: Res<ButtonInput<KeyCode>>,
+    shoot_request: Option<Res<crate::touch::shoot::ShootRequest>>,
     existing_balls: Query<&Projectile>,
     character: Query<&Transform, With<CharacterMarker>>,
     camera: Query<(&Transform, &OrbitCamera), Without<CharacterMarker>>,
@@ -63,8 +64,13 @@ fn spawn_ball(
     ws: Option<Res<WsConnection>>,
     connection_status: Res<ConnectionStatus>,
 ) {
-    if !keyboard.just_pressed(KeyCode::Space) {
+    let should_shoot = keyboard.just_pressed(KeyCode::Space) || shoot_request.is_some();
+    if !should_shoot {
         return;
+    }
+    // Consume the touch shoot request
+    if shoot_request.is_some() {
+        commands.remove_resource::<crate::touch::shoot::ShootRequest>();
     }
 
     // Allow up to 3 balls at a time

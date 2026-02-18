@@ -2,9 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>3DT - Math Tables Game</title>
     <link data-trunk rel="copy-dir" href="assets" />
+    <link data-trunk rel="copy-file" href="manifest.json" />
+    <link data-trunk rel="copy-file" href="sw.js" />
+    <link data-trunk rel="copy-dir" href="icons" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#596e91" />
     <style>
         html, body {
             margin: 0;
@@ -18,9 +24,11 @@
             display: block;
             width: 100vw;
             height: 100vh;
+            touch-action: none;
         }
     </style>
 </head>
 <body>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>

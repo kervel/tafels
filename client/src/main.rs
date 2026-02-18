@@ -11,7 +11,10 @@ mod projectile;
 mod terrain;
 mod vegetation;
 
+mod touch;
+
 use bevy::prelude::*;
+use bevy::window::WindowResolution;
 
 fn main() {
     App::new()
@@ -19,6 +22,10 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "3dt - Math Tables Game".to_string(),
+                fit_canvas_to_parent: true,
+                prevent_default_event_handling: true,
+                resolution: WindowResolution::default()
+                    .with_scale_factor_override(1.0),
                 ..default()
             }),
             ..default()
@@ -36,5 +43,6 @@ fn main() {
         .add_plugins(effects::EffectsPlugin)
         .add_plugins(network::NetworkPlugin)
         .add_plugins(network::remote_players::RemotePlayersPlugin)
+        .add_plugins(touch::TouchPlugin)
         .run();
 }
