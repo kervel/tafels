@@ -14,7 +14,7 @@ fn setup_lighting(mut commands: Commands) {
         DirectionalLight {
             color: Color::srgb(1.0, 0.9, 0.75),
             illuminance: 40_000.0,
-            shadows_enabled: true,
+            shadows_enabled: !cfg!(target_arch = "wasm32"),
             ..default()
         },
         Transform::from_rotation(Quat::from_euler(

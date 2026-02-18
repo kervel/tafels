@@ -48,7 +48,9 @@ fn spawn_vegetation(
     let conifer_scene: Handle<Scene> = asset_server
         .load(GltfAssetLabel::Scene(0).from_asset("models/pp_conifer2/pp_conifer2.glb"));
 
-    // Poly Haven rock (realistic textures, 15K tris - acceptable for fewer instances)
+    // Poly Haven rock - only on native; causes rendering artifacts (bright flashes)
+    // on WebGL2 that persist even after stripping all PBR textures.
+    #[cfg(not(target_arch = "wasm32"))]
     let rock_scene: Handle<Scene> = asset_server
         .load(GltfAssetLabel::Scene(0).from_asset("models/rock_07/rock_07_1k.gltf"));
 
@@ -59,12 +61,21 @@ fn spawn_vegetation(
         .load(GltfAssetLabel::Scene(0).from_asset("models/dirt_patch.glb"));
 
     for instance in positions {
+        // Skip rocks on WASM - they cause bright flashes on WebGL2
+        #[cfg(target_arch = "wasm32")]
+        if matches!(instance.vegetation_type, VegetationType::RockOutcrop) {
+            continue;
+        }
+
         let scene = match instance.vegetation_type {
             VegetationType::PineSapling => pine_scene.clone(),
             VegetationType::FirSapling => spruce_scene.clone(),
             VegetationType::ProceduralConifer => conifer_scene.clone(),
             VegetationType::Shrub => shrub_scene.clone(),
+            #[cfg(not(target_arch = "wasm32"))]
             VegetationType::RockOutcrop => rock_scene.clone(),
+            #[cfg(target_arch = "wasm32")]
+            VegetationType::RockOutcrop => unreachable!(),
             VegetationType::DirtPatch => dirt_scene.clone(),
         };
 

@@ -186,6 +186,7 @@ fn spawn_beacon(
     });
 
     // Front light offset: place a bright PointLight just in front of the beacon
+    #[cfg(not(target_arch = "wasm32"))]
     let front_offset = facing_dir * 2.5;
 
     // Spawn exercise entity with beacon visual as child
@@ -209,7 +210,9 @@ fn spawn_beacon(
                 MeshMaterial3d(beacon_material),
                 Transform::from_translation(Vec3::new(0.0, beacon_height * 0.5, 0.0)),
             ));
-            // Bright point light in FRONT of the beacon — illuminates the capsule front + ground
+            // Bright point light in FRONT of the beacon — illuminates the capsule front + ground.
+            // Skipped on WASM: point lights are expensive on WebGL2 forward rendering.
+            #[cfg(not(target_arch = "wasm32"))]
             parent.spawn((
                 BeaconVisual,
                 PointLight {
