@@ -36,7 +36,6 @@ pub enum MultiplayerRoundState {
     Countdown(f32),
     Playing,
     RoundOver,
-    Spectating,
 }
 
 #[derive(Debug, Clone)]

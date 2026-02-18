@@ -15,7 +15,6 @@ impl Plugin for SoftKeyboardPlugin {
 #[derive(Resource, Default)]
 pub struct SoftKeyboardInput {
     pub buffer: Vec<char>,
-    pub active: bool,
 }
 
 // ---- WASM implementation ----

@@ -164,7 +164,6 @@ pub struct BeaconActivatedEvent {
 
 #[derive(Message)]
 pub struct RemoteBallShotEvent {
-    pub player_id: u32,
     pub position: Vec3,
     pub velocity: Vec3,
 }
@@ -361,7 +360,6 @@ fn receive_messages(
                         } => {
                             if Some(pid) != my_player_id {
                                 ball_shot.write(RemoteBallShotEvent {
-                                    player_id: pid,
                                     position: Vec3::new(x, y, z),
                                     velocity: Vec3::new(vx, vy, vz),
                                 });

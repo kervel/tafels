@@ -28,7 +28,6 @@ pub struct TouchDevice {
 
 #[cfg(target_arch = "wasm32")]
 fn detect_touch_device(mut touch: ResMut<TouchDevice>) {
-    use wasm_bindgen::JsCast;
     if let Some(window) = web_sys::window() {
         let navigator = window.navigator();
         if navigator.max_touch_points() > 0 {
@@ -53,9 +52,4 @@ fn runtime_touch_detection(
 /// Run condition: only run when touch device detected and playing.
 pub fn touch_playing(touch: Res<TouchDevice>, state: Res<State<GameState>>) -> bool {
     touch.detected && *state.get() == GameState::Playing
-}
-
-/// Run condition: only run when touch device detected.
-pub fn touch_detected(touch: Res<TouchDevice>) -> bool {
-    touch.detected
 }
