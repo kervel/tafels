@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::input::touch::{TouchInput, TouchPhase};
 
 use crate::character::{CharacterController, MovementInput};
+use crate::character::controller::read_movement_input;
 use crate::game::GameState;
 use super::{TouchDevice, touch_playing};
 
@@ -20,7 +21,7 @@ impl Plugin for JoystickPlugin {
                 (
                     touch_joystick_input,
                     update_joystick_ui,
-                    apply_joystick_to_movement,
+                    apply_joystick_to_movement.before(read_movement_input),
                 )
                     .chain()
                     .run_if(touch_playing),

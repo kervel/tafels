@@ -3,11 +3,18 @@ use bevy::prelude::*;
 use super::{CharacterController, CharacterState, MovementInput};
 use crate::terrain::TerrainResource;
 use crate::terrain::heightmap;
+use crate::touch::joystick::JoystickState;
 
 pub fn read_movement_input(
     keyboard: Res<ButtonInput<KeyCode>>,
+    joystick: Res<JoystickState>,
     mut query: Query<(&mut MovementInput, &mut CharacterController)>,
 ) {
+    // Don't overwrite joystick input with keyboard zeros
+    if joystick.active {
+        return;
+    }
+
     for (mut input, mut controller) in &mut query {
         let mut dir = Vec2::ZERO;
 
