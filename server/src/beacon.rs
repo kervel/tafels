@@ -12,8 +12,7 @@ const MAX_BEACONS_PER_PLAYER: usize = 5;
 const SPAWN_INTERVAL: f32 = 3.0;
 /// Beacon lifetime in seconds.
 const BEACON_LIFETIME: f32 = 45.0;
-/// Minimum distance between beacons.
-const MIN_BEACON_SEPARATION: f32 = 12.0;
+use tafels_shared::constants::MIN_BEACON_SEPARATION;
 
 pub struct BeaconManager {
     heightmap: tafels_shared::heightmap::HeightmapData,

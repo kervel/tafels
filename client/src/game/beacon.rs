@@ -12,6 +12,7 @@ use crate::network::{
     BeaconActivatedEvent, BeaconExpiredEvent, BeaconResolvedEvent, BeaconSpawnedEvent,
     ConnectionStatus, WsConnection,
 };
+use tafels_shared::constants::MIN_BEACON_SEPARATION;
 use tafels_shared::protocol::{ClientMessage, encode};
 
 pub struct BeaconPlugin;
@@ -135,7 +136,7 @@ fn spawn_beacon(
         for beacon_tf in &existing_beacons {
             let bx = candidate.x - beacon_tf.translation.x;
             let bz = candidate.z - beacon_tf.translation.z;
-            if (bx * bx + bz * bz).sqrt() < 10.0 {
+            if (bx * bx + bz * bz).sqrt() < MIN_BEACON_SEPARATION {
                 too_close = true;
                 break;
             }
