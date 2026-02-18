@@ -1,0 +1,11 @@
+[package]
+name = "tafels-shared"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+postcard = { version = "1", features = ["alloc"] }
+rand = "0.8"
+noise = "0.9"
+glam = { version = "0.29", features = ["serde"] }

@@ -35,12 +35,12 @@ jobs:
           sudo cp binaryen-version_126/bin/wasm-opt /usr/local/bin/
 
       - name: Build
-        run: $HOME/.cargo/bin/trunk build --release --public-url /tafels/
+        run: cd client && $HOME/.cargo/bin/trunk build --release --public-url /tafels/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: client/dist
 
   deploy:
     needs: build

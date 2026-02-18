@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enable }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "resourcePrefix" . }}-server
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.websocket.proxyReadTimeout | quote }}
+    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.ingress.websocket.proxySendTimeout | quote }}
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    {{- if .Values.ingress.tlsIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.tlsIssuer | quote }}
+    {{- end }}
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  {{- end }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "resourcePrefix" . }}-server
+                port:
+                  number: 3000
+  {{- if .Values.ingress.tlsIssuer }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.domain }}
+      secretName: {{ include "resourcePrefix" . }}-tls
+  {{- end }}
+{{- end }}

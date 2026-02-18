@@ -1,5 +1,6 @@
 /target
 /dist
+/client/dist
 *.swp
 *.swo
 .DS_Store

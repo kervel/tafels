@@ -1,0 +1,29 @@
+## Global
+
+# -- Name of the imagePullSecret to use for pulling images
+imagePullSecrets: ""
+
+# -- Disable resource requests/limits on workloads (useful for dev clusters)
+disableResourceRequests: false
+
+server:
+  image:
+    repository: tafels-server
+    tag: null
+  replicas: 1
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+
+ingress:
+  enable: true
+  className: nginx
+  domain: tafels.example.com
+  tlsIssuer: ""
+  websocket:
+    proxyReadTimeout: "3600"
+    proxySendTimeout: "3600"

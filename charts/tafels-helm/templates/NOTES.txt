@@ -1,0 +1,4 @@
+Tafels game server deployed!
+
+WebSocket endpoint: ws{{ if .Values.ingress.tlsIssuer }}s{{ end }}://{{ .Values.ingress.domain }}/ws
+Health check:       http{{ if .Values.ingress.tlsIssuer }}s{{ end }}://{{ .Values.ingress.domain }}/health

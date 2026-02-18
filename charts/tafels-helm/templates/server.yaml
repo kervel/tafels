@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "resourcePrefix" . }}-server
+  labels:
+    app: {{ include "resourcePrefix" . }}-server
+spec:
+  replicas: {{ .Values.server.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "resourcePrefix" . }}-server
+  template:
+    metadata:
+      labels:
+        app: {{ include "resourcePrefix" . }}-server
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecrets }}
+      {{- end }}
+      containers:
+        - name: tafels-server
+          image: {{ .Values.server.image.repository }}:{{ default .Chart.Version .Values.server.image.tag }}
+          ports:
+            - containerPort: 3000
+          env:
+            - name: BIND_ADDR
+              value: "0.0.0.0:3000"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          {{- if not .Values.disableResourceRequests }}
+          resources:
+            requests:
+              memory: {{ .Values.server.resources.requests.memory }}
+              cpu: {{ .Values.server.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.server.resources.limits.memory }}
+              cpu: {{ .Values.server.resources.limits.cpu }}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "resourcePrefix" . }}-server
+spec:
+  selector:
+    app: {{ include "resourcePrefix" . }}-server
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
