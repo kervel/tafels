@@ -1,6 +1,6 @@
-const CACHE_NAME = '3dt-cache-v1';
+const CACHE_NAME = '3dt-cache-v2';
 
-// Cache-first for static assets
+// Network-first for all assets (always get latest, cache as offline fallback)
 const CACHEABLE_EXTENSIONS = ['.wasm', '.js', '.html', '.css', '.glb', '.png', '.jpg', '.json'];
 
 self.addEventListener('install', (event) => {
@@ -27,26 +27,21 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (url.protocol === 'ws:' || url.protocol === 'wss:') return;
 
-  // Check if this is a cacheable static asset
   const isCacheable = CACHEABLE_EXTENSIONS.some((ext) => url.pathname.endsWith(ext))
     || url.pathname === '/';
 
   if (isCacheable) {
+    // Network-first: try network, fall back to cache (for offline)
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        // Return cached version, but also update cache in background
-        const fetchPromise = fetch(event.request)
-          .then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            }
-            return response;
-          })
-          .catch(() => cached);
-
-        return cached || fetchPromise;
-      })
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
   }
 });
