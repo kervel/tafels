@@ -137,7 +137,7 @@ pub fn camera_follow(
             while diff < -std::f32::consts::PI {
                 diff += std::f32::consts::TAU;
             }
-            orbit.yaw += diff * 6.0 * time.delta_secs();
+            orbit.yaw += diff * 2.0 * time.delta_secs();
         }
 
         let target_pos = char_transform.translation + Vec3::new(0.0, 1.5, 0.0);

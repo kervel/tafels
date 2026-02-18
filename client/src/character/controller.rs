@@ -27,8 +27,15 @@ pub fn read_movement_input(
                 } else {
                     normalized
                 };
+                // Apply gentle power curve so small deflections give fine control
+                let mag = clamped.length();
+                let curved = if mag > 0.001 {
+                    clamped * (mag.powf(1.5) / mag)
+                } else {
+                    Vec2::ZERO
+                };
                 // Touch coords: X right, Y down. Movement: X right, Y forward.
-                input.direction = Vec2::new(clamped.x, -clamped.y);
+                input.direction = Vec2::new(curved.x, -curved.y);
                 controller.running = dist / joystick.max_radius >= 0.9;
             }
             continue;
