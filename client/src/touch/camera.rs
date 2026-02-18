@@ -73,6 +73,10 @@ fn touch_camera_input(
             TouchPhase::Ended | TouchPhase::Canceled => {
                 if cam_state.touch_id == Some(event.id) {
                     cam_state.touch_id = None;
+                    // Re-enable auto-follow immediately on touch release
+                    for mut orbit in &mut orbit_query {
+                        orbit.auto_follow = true;
+                    }
                 }
             }
         }

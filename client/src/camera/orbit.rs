@@ -102,10 +102,12 @@ pub fn camera_follow(
             orbit.needs_snap = true;
         }
 
-        // Update the last known movement yaw when character is walking FORWARD.
+        // Update the last known movement yaw when character is moving FORWARD.
         // Skip backwards/strafe-only movement so the camera doesn't swing around
         // when the player backs up toward an exercise beacon.
-        if *char_state == CharacterState::Walking
+        let is_moving = *char_state == CharacterState::Walking
+            || *char_state == CharacterState::Running;
+        if is_moving
             && move_input.direction.length_squared() > 0.01
             && move_input.direction.y > -0.1
         {
@@ -119,7 +121,7 @@ pub fn camera_follow(
         }
 
         // Auto-follow: smoothly lerp camera yaw to behind the character's movement
-        if orbit.auto_follow && *char_state == CharacterState::Walking {
+        if orbit.auto_follow && is_moving {
             let target_yaw = orbit.last_move_yaw + std::f32::consts::PI;
 
             let mut diff = target_yaw - orbit.yaw;
