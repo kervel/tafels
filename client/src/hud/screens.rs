@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::game::difficulty::Difficulty;
-use crate::game::{GameSession, GameState, Leaderboard, MultiplayerRoundState};
+use crate::game::{ForceSinglePlayer, GameSession, GameState, Leaderboard, MultiplayerRoundState};
 use crate::network::{RoundMessageBuffer, WsConnection};
 use tafels_shared::protocol::{ClientMessage, encode};
 
@@ -13,7 +13,8 @@ impl Plugin for ScreensPlugin {
             .add_systems(OnExit(GameState::Menu), despawn_menu)
             .add_systems(
                 Update,
-                handle_menu_input.run_if(in_state(GameState::Menu)),
+                (handle_menu_input, handle_singleplayer_toggle)
+                    .run_if(in_state(GameState::Menu)),
             )
             .add_systems(
                 Update,
@@ -75,7 +76,13 @@ struct CountdownText;
 #[derive(Component)]
 struct RoundOverScreen;
 
-fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
+#[derive(Component)]
+struct SinglePlayerButton;
+
+#[derive(Component)]
+struct SinglePlayerButtonText;
+
+fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, force_sp: Res<ForceSinglePlayer>) {
     commands
         .spawn((
             MenuScreen,
@@ -203,6 +210,38 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
                         ));
                     });
             }
+
+            // Single-player toggle
+            let sp_label = if force_sp.0 { "Single Player" } else { "Multiplayer" };
+            let sp_color = if force_sp.0 {
+                Color::srgba(0.7, 0.7, 0.7, 0.6)
+            } else {
+                Color::srgba(0.4, 0.7, 1.0, 0.8)
+            };
+            parent
+                .spawn((
+                    SinglePlayerButton,
+                    Button,
+                    Node {
+                        padding: UiRect::axes(Val::Px(12.0), Val::Px(6.0)),
+                        margin: UiRect::top(Val::Px(24.0)),
+                        border: UiRect::all(Val::Px(1.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::NONE),
+                    BorderColor::all(sp_color),
+                ))
+                .with_children(|btn| {
+                    btn.spawn((
+                        SinglePlayerButtonText,
+                        Text::new(sp_label),
+                        TextFont {
+                            font_size: 16.0,
+                            ..default()
+                        },
+                        TextColor(sp_color),
+                    ));
+                });
         });
 }
 
@@ -272,6 +311,31 @@ fn handle_menu_input(
         if *interaction == Interaction::Pressed {
             session.difficulty = button.0;
             next_state.set(GameState::Playing);
+        }
+    }
+}
+
+fn handle_singleplayer_toggle(
+    interaction: Query<&Interaction, (Changed<Interaction>, With<SinglePlayerButton>)>,
+    mut force_sp: ResMut<ForceSinglePlayer>,
+    mut text_query: Query<(&mut Text, &mut TextColor), With<SinglePlayerButtonText>>,
+    mut border_query: Query<&mut BorderColor, With<SinglePlayerButton>>,
+) {
+    for inter in &interaction {
+        if *inter == Interaction::Pressed {
+            force_sp.0 = !force_sp.0;
+            let (label, color) = if force_sp.0 {
+                ("Single Player", Color::srgba(0.7, 0.7, 0.7, 0.6))
+            } else {
+                ("Multiplayer", Color::srgba(0.4, 0.7, 1.0, 0.8))
+            };
+            for (mut text, mut tc) in &mut text_query {
+                **text = label.to_string();
+                tc.0 = color;
+            }
+            for mut bc in &mut border_query {
+                *bc = BorderColor::all(color);
+            }
         }
     }
 }

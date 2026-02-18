@@ -18,6 +18,7 @@ impl Plugin for GamePlugin {
             .insert_resource(ActiveExercises::default())
             .insert_resource(MultiplayerRoundState::default())
             .insert_resource(Leaderboard::default())
+            .insert_resource(ForceSinglePlayer(false))
             .add_plugins(exercise::ExercisePlugin)
             .add_plugins(panels::PanelPlugin)
             .add_plugins(scoring::ScoringPlugin)
@@ -70,6 +71,9 @@ impl Default for ActiveExercises {
         }
     }
 }
+
+#[derive(Resource)]
+pub struct ForceSinglePlayer(pub bool);
 
 #[derive(States, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum GameState {

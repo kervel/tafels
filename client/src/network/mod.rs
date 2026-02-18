@@ -10,7 +10,7 @@ use tafels_shared::protocol::{
 };
 
 use crate::character::{CharacterMarker, CharacterState};
-use crate::game::{GameSession, GameState, Leaderboard, LeaderboardEntry, MultiplayerRoundState};
+use crate::game::{ForceSinglePlayer, GameSession, GameState, Leaderboard, LeaderboardEntry, MultiplayerRoundState};
 
 /// For WASM builds, derive WebSocket URL from the page's origin at runtime.
 #[cfg(target_arch = "wasm32")]
@@ -180,7 +180,16 @@ pub struct RoundMessageBuffer {
     pub score_updates: Vec<(u32, i32)>,
 }
 
-fn connect_to_server(mut status: ResMut<ConnectionStatus>, mut commands: Commands) {
+fn connect_to_server(
+    mut status: ResMut<ConnectionStatus>,
+    mut commands: Commands,
+    force_sp: Res<ForceSinglePlayer>,
+) {
+    if force_sp.0 {
+        info!("Single-player mode selected. Skipping server connection.");
+        *status = ConnectionStatus::Disconnected;
+        return;
+    }
     let url = server_url();
     match ewebsock::connect(&url, ewebsock::Options::default()) {
         Ok((sender, receiver)) => {
