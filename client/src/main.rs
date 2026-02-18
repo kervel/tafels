@@ -11,7 +11,6 @@ mod projectile;
 mod terrain;
 mod vegetation;
 
-use bevy::dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin};
 use bevy::prelude::*;
 
 fn main() {
@@ -24,17 +23,6 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(FpsOverlayPlugin {
-            config: FpsOverlayConfig {
-                text_config: TextFont {
-                    font_size: 20.0,
-                    ..default()
-                },
-                text_color: Color::srgb(1.0, 1.0, 0.0),
-                enabled: true,
-                ..default()
-            },
-        })
         .add_plugins(terrain::TerrainPlugin)
         .add_plugins(lighting::LightingPlugin)
         .add_plugins(character::CharacterPlugin)

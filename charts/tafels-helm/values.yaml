@@ -8,7 +8,7 @@ disableResourceRequests: false
 
 server:
   image:
-    repository: tafels-server
+    repository: ghcr.io/kervel/tafels-server
     tag: null
   replicas: 1
   service:
