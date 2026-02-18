@@ -57,8 +57,7 @@ The GitHub Pages version runs in single-player mode. For multiplayer, you need t
 A Helm chart is provided in `charts/tafels-helm/` for deploying to Kubernetes.
 
 ```bash
-helm install tafels ./charts/tafels-helm \
-  --set server.image.tag=latest \
+helm install tafels oci://ghcr.io/kervel/charts/tafels-helm \
   --set ingress.domain=tafels.example.com
 ```
 
