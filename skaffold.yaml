@@ -1,4 +1,4 @@
-apiVersion: skaffold/v4beta9
+apiVersion: skaffold/v4beta13
 kind: Config
 metadata:
   name: tafels
@@ -17,6 +17,7 @@ build:
     concurrency: 1
     tryImportMissing: true
     useDockerCLI: true
+    push: false
 
 deploy:
   helm:
