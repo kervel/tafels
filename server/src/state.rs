@@ -1,10 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use tafels_shared::difficulty::Difficulty;
 use tafels_shared::protocol::{BeaconInfo, PlayerState};
 use tokio::sync::{Mutex, broadcast};
-
-const ROUND_TIME: f32 = 180.0; // 3 minutes
 
 #[derive(Debug, Clone)]
 pub enum RoundState {
@@ -30,6 +29,7 @@ pub struct GameWorld {
     pub player_ready: HashSet<u32>,
     pub player_coins: HashMap<u32, i32>,
     pub round_state: RoundState,
+    pub difficulty: Difficulty,
 }
 
 impl GameWorld {
@@ -44,6 +44,7 @@ impl GameWorld {
             player_ready: HashSet::new(),
             player_coins: HashMap::new(),
             round_state: RoundState::Lobby,
+            difficulty: Difficulty::Easy,
         }
     }
 
@@ -70,8 +71,8 @@ impl GameWorld {
         self.player_coins.remove(&player_id);
     }
 
-    pub fn round_time() -> f32 {
-        ROUND_TIME
+    pub fn round_time(&self) -> f32 {
+        self.difficulty.round_time()
     }
 }
 

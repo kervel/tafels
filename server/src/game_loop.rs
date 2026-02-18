@@ -49,7 +49,7 @@ async fn tick_round_state(dt: f32, state: &AppState) {
         RoundState::Countdown(ref mut remaining) => {
             *remaining -= dt;
             if *remaining <= 0.0 {
-                Some(RoundState::Playing(GameWorld::round_time()))
+                Some(RoundState::Playing(world.round_time()))
             } else {
                 None
             }

@@ -65,7 +65,7 @@ impl Default for ActiveExercises {
         Self {
             total_engaged: 0,
             total_spawned: 0,
-            target_concurrent: 3,
+            target_concurrent: 6,
             next_exercise_id: 0,
             cooldown_timer: 0.0,
         }
