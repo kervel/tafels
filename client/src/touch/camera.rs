@@ -30,16 +30,56 @@ struct PinchState {
 }
 
 fn touch_camera_input(
-    mut _touch_events: MessageReader<TouchInput>,
-    _joystick: Res<JoystickState>,
-    mut _cam_state: ResMut<TouchCameraState>,
+    mut touch_events: MessageReader<TouchInput>,
+    joystick: Res<JoystickState>,
+    mut cam_state: ResMut<TouchCameraState>,
     mut orbit_query: Query<&mut OrbitCamera>,
-    _touches: Res<Touches>,
+    touches: Res<Touches>,
 ) {
-    // On touch devices, camera always auto-follows behind the player.
-    // No manual orbit — only pinch-zoom is allowed.
-    for mut orbit in &mut orbit_query {
-        orbit.auto_follow = true;
+    // Don't orbit while pinching (2+ fingers)
+    let active_count = touches.iter().count();
+    if active_count >= 2 {
+        cam_state.touch_id = None;
+        return;
+    }
+
+    for event in touch_events.read() {
+        match event.phase {
+            TouchPhase::Started => {
+                // Only if not the joystick finger
+                if joystick.touch_id != Some(event.id) && cam_state.touch_id.is_none() {
+                    cam_state.touch_id = Some(event.id);
+                    cam_state.last_position = event.position;
+
+                    for mut orbit in &mut orbit_query {
+                        orbit.auto_follow = false;
+                        orbit.return_timer = 0.0;
+                    }
+                }
+            }
+            TouchPhase::Moved => {
+                if cam_state.touch_id == Some(event.id) {
+                    let delta = event.position - cam_state.last_position;
+                    cam_state.last_position = event.position;
+
+                    let sensitivity = 0.005;
+                    for mut orbit in &mut orbit_query {
+                        orbit.yaw -= delta.x * sensitivity;
+                        orbit.pitch += delta.y * sensitivity;
+                        orbit.pitch = orbit.pitch.clamp(-1.2, 1.2);
+                    }
+                }
+            }
+            TouchPhase::Ended | TouchPhase::Canceled => {
+                if cam_state.touch_id == Some(event.id) {
+                    cam_state.touch_id = None;
+                    // Re-enable auto-follow immediately on touch release
+                    for mut orbit in &mut orbit_query {
+                        orbit.auto_follow = true;
+                    }
+                }
+            }
+        }
     }
 }
 

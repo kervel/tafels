@@ -120,9 +120,14 @@ pub fn camera_follow(
             }
         }
 
-        // Auto-follow: smoothly lerp camera yaw to behind the character's movement.
-        // Follows even when standing still (uses last known direction).
-        if orbit.auto_follow {
+        // Re-enable auto-follow as soon as the character starts moving,
+        // but not while the user is actively dragging (return_timer == 0 means dragging)
+        if is_moving && !orbit.auto_follow && orbit.return_timer > 0.0 {
+            orbit.auto_follow = true;
+        }
+
+        // Auto-follow: smoothly lerp camera yaw to behind the character's movement
+        if orbit.auto_follow && is_moving {
             let target_yaw = orbit.last_move_yaw + std::f32::consts::PI;
 
             let mut diff = target_yaw - orbit.yaw;
@@ -132,9 +137,7 @@ pub fn camera_follow(
             while diff < -std::f32::consts::PI {
                 diff += std::f32::consts::TAU;
             }
-            // Fast follow while moving, gentle settle when stopped
-            let speed = if is_moving { 6.0 } else { 3.0 };
-            orbit.yaw += diff * speed * time.delta_secs();
+            orbit.yaw += diff * 6.0 * time.delta_secs();
         }
 
         let target_pos = char_transform.translation + Vec3::new(0.0, 1.5, 0.0);
