@@ -23,7 +23,7 @@ impl BeaconManager {
     pub fn new() -> Self {
         // Same parameters as the client terrain (see client/src/terrain/mod.rs)
         Self {
-            heightmap: generate_heightmap(256, 256, 500.0, 30.0),
+            heightmap: generate_heightmap(256, 256, 500.0, 60.0),
             spawn_cooldown: 5.0, // Initial delay before first beacon
         }
     }
@@ -43,6 +43,9 @@ impl BeaconManager {
                     true
                 }
             });
+            for &id in &expired_ids {
+                world.activated_beacons.remove(&id);
+            }
             // Update remaining lifetimes
             for beacon in world.beacons.values_mut() {
                 beacon.lifetime -= dt;
@@ -62,7 +65,7 @@ impl BeaconManager {
         }
 
         // Collect data under lock, then release before doing RNG
-        let (_player_count, _beacon_count, target_x, target_z, existing_positions, next_id) = {
+        let (_player_count, _beacon_count, target_player_id, target_x, target_z, existing_positions, next_id) = {
             let world = state.world.lock().await;
             if world.players.is_empty() {
                 return;
@@ -80,6 +83,7 @@ impl BeaconManager {
             (
                 players.len(),
                 world.beacons.len(),
+                target.player_id,
                 target.x,
                 target.z,
                 existing,
@@ -156,6 +160,7 @@ impl BeaconManager {
                     .position(|&c| c == exercise.correct_answer)
                     .unwrap_or(0) as u8,
                 lifetime: BEACON_LIFETIME,
+                target_player_id,
             }
         }; // rng dropped here, before any await
 

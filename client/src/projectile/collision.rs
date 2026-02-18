@@ -1,17 +1,19 @@
 use bevy::prelude::*;
 
-use super::Projectile;
-use crate::game::beacon::{BeaconFacing, BeaconState, BeaconVisual};
+use super::{Projectile, RemoteProjectile};
+use crate::game::beacon::{BeaconFacing, BeaconState, BeaconVisual, ServerBeaconId};
 use crate::game::exercise::{ActiveExercise, ExerciseId, ExerciseState};
-use crate::game::panels::AnswerPanel;
+use crate::game::panels::{AnswerPanel, SpectatorPanel};
 use crate::game::scoring::PendingAnswer;
 use crate::game::{ActiveExercises, GameSession};
+use crate::network::WsConnection;
+use tafels_shared::protocol::{ClientMessage, encode};
 
 /// Check if the ball intersects with any answer panel.
 pub fn check_ball_panel_collision(
     mut commands: Commands,
-    balls: Query<(Entity, &Transform), With<Projectile>>,
-    panels: Query<(&Transform, &AnswerPanel)>,
+    balls: Query<(Entity, &Transform), (With<Projectile>, Without<RemoteProjectile>)>,
+    panels: Query<(&Transform, &AnswerPanel), Without<SpectatorPanel>>,
     pending: Option<Res<PendingAnswer>>,
 ) {
     // Don't process if we already have a pending answer
@@ -59,7 +61,7 @@ pub fn check_ball_panel_collision(
 #[allow(clippy::too_many_arguments)]
 pub fn check_ball_beacon_collision(
     mut commands: Commands,
-    balls: Query<(Entity, &Transform), With<Projectile>>,
+    balls: Query<(Entity, &Transform), (With<Projectile>, Without<RemoteProjectile>)>,
     mut beacons: Query<(
         Entity,
         &ExerciseId,
@@ -67,6 +69,7 @@ pub fn check_ball_beacon_collision(
         &BeaconFacing,
         &Transform,
         &mut ActiveExercise,
+        Option<&ServerBeaconId>,
     )>,
     beacon_visuals: Query<(Entity, &ChildOf), With<BeaconVisual>>,
     mut active_exercises: ResMut<ActiveExercises>,
@@ -76,6 +79,7 @@ pub fn check_ball_beacon_collision(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
     mut styled_events: MessageWriter<crate::effects::particles::StyledParticleEvent>,
+    ws: Option<Res<WsConnection>>,
 ) {
     if active_exercises.total_engaged >= session.total_exercises {
         return;
@@ -87,7 +91,7 @@ pub fn check_ball_beacon_collision(
     for (ball_entity, ball_tf) in &balls {
         let ball_pos = ball_tf.translation;
 
-        for (entity, exercise_id, mut state, facing, beacon_tf, mut exercise) in &mut beacons {
+        for (entity, exercise_id, mut state, facing, beacon_tf, mut exercise, server_beacon_id) in &mut beacons {
             if *state != BeaconState::Dormant {
                 continue;
             }
@@ -105,6 +109,12 @@ pub fn check_ball_beacon_collision(
             *state = BeaconState::Activated;
             exercise.state = ExerciseState::Active;
             active_exercises.total_engaged += 1;
+
+            // Notify server (multiplayer)
+            if let (Some(ServerBeaconId(bid)), Some(ws)) = (server_beacon_id, &ws) {
+                let msg = ClientMessage::ActivateBeacon { beacon_id: *bid };
+                ws.send_binary(encode(&msg));
+            }
 
             // Despawn beacon visual children
             for (vis_entity, child_of) in &beacon_visuals {
@@ -126,6 +136,7 @@ pub fn check_ball_beacon_collision(
                 &exercise.choices,
                 exercise.correct_answer,
                 exercise_id.0,
+                true, // interactive — this player activated it
             );
 
             // Text rotation

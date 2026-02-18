@@ -9,7 +9,8 @@ use crate::character::CharacterMarker;
 use crate::collision::VegetationCollider;
 use crate::effects::particles::{ParticleStyle, StyledParticleEvent};
 use crate::network::{
-    BeaconExpiredEvent, BeaconResolvedEvent, BeaconSpawnedEvent, ConnectionStatus, WsConnection,
+    BeaconActivatedEvent, BeaconExpiredEvent, BeaconResolvedEvent, BeaconSpawnedEvent,
+    ConnectionStatus, WsConnection,
 };
 use tafels_shared::protocol::{ClientMessage, encode};
 
@@ -28,6 +29,7 @@ impl Plugin for BeaconPlugin {
                 animate_beacons,
                 handle_beacon_resolved,
                 handle_beacon_expired,
+                handle_beacon_activated,
                 send_answer_to_server,
             )
                 .run_if(in_state(GameState::Playing)),
@@ -81,8 +83,8 @@ fn spawn_beacon(
     mut styled_events: MessageWriter<StyledParticleEvent>,
     connection_status: Res<ConnectionStatus>,
 ) {
-    // In multiplayer mode, beacons are managed by the server
-    if connection_status.is_online() {
+    // In multiplayer mode (or while connecting), beacons are managed by the server
+    if !matches!(*connection_status, ConnectionStatus::Disconnected) {
         return;
     }
     // Tick cooldown
@@ -297,6 +299,7 @@ fn check_proximity_trigger(
         &BeaconFacing,
         &Transform,
         &mut super::exercise::ActiveExercise,
+        Option<&ServerBeaconId>,
     )>,
     beacon_visuals: Query<(Entity, &ChildOf), With<BeaconVisual>>,
     character: Query<&Transform, (With<CharacterMarker>, Without<ExerciseId>)>,
@@ -307,6 +310,7 @@ fn check_proximity_trigger(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
     mut styled_events: MessageWriter<StyledParticleEvent>,
+    ws: Option<Res<WsConnection>>,
 ) {
     let Ok(char_tf) = character.single() else {
         return;
@@ -319,7 +323,7 @@ fn check_proximity_trigger(
         return;
     }
 
-    for (entity, exercise_id, mut state, facing, beacon_tf, mut exercise) in &mut beacons {
+    for (entity, exercise_id, mut state, facing, beacon_tf, mut exercise, server_beacon_id) in &mut beacons {
         if *state != BeaconState::Dormant {
             continue;
         }
@@ -346,6 +350,12 @@ fn check_proximity_trigger(
         exercise.state = ExerciseState::Active;
         active_exercises.total_engaged += 1;
 
+        // Notify server (multiplayer)
+        if let (Some(ServerBeaconId(bid)), Some(ws)) = (server_beacon_id, &ws) {
+            let msg = ClientMessage::ActivateBeacon { beacon_id: *bid };
+            ws.send_binary(encode(&msg));
+        }
+
         // Despawn beacon visual children
         for (vis_entity, child_of) in &beacon_visuals {
             if child_of.parent() == entity {
@@ -366,6 +376,7 @@ fn check_proximity_trigger(
             &exercise.choices,
             exercise.correct_answer,
             exercise_id.0,
+            true, // interactive — this player activated it
         );
 
         // Compute the panel rotation for text alignment
@@ -552,12 +563,15 @@ fn spawn_server_beacon(
 
         let spawn_center = Vec3::new(info.x, info.y, info.z);
 
-        let mut rng = rand::thread_rng();
-        let facing_angle = rng.r#gen_range(0.0..std::f32::consts::TAU);
+        // Deterministic facing and color from beacon_id so all clients agree
+        let facing_angle = (info.beacon_id as f32) * 2.654_435_8; // golden angle in radians
         let facing_dir = Vec3::new(facing_angle.cos(), 0.0, facing_angle.sin());
 
-        let color_idx = rng.r#gen_range(0..NEON_COLORS.len());
+        let color_idx = info.beacon_id as usize % NEON_COLORS.len();
         let neon = NEON_COLORS[color_idx];
+        let base_color = Color::srgb(neon[0], neon[1], neon[2]);
+        let emissive =
+            bevy::color::LinearRgba::new(neon[0] * 1.5, neon[1] * 1.5, neon[2] * 1.5, 1.0);
 
         let beacon_height = 3.5;
         let beacon_radius = 0.3;
@@ -566,13 +580,8 @@ fn spawn_server_beacon(
             beacon_height - beacon_radius * 2.0,
         ));
         let beacon_material = materials.add(StandardMaterial {
-            base_color: Color::srgb(neon[0], neon[1], neon[2]),
-            emissive: bevy::color::LinearRgba::new(
-                neon[0] * 1.5,
-                neon[1] * 1.5,
-                neon[2] * 1.5,
-                1.0,
-            ),
+            base_color,
+            emissive,
             ..default()
         });
 
@@ -603,7 +612,7 @@ fn spawn_server_beacon(
                 parent.spawn((
                     BeaconVisual,
                     PointLight {
-                        color: Color::srgb(neon[0], neon[1], neon[2]),
+                        color: base_color,
                         intensity: 1_500_000.0,
                         range: 30.0,
                         shadows_enabled: false,
@@ -619,7 +628,7 @@ fn spawn_server_beacon(
 
         styled_events.write(StyledParticleEvent {
             position: spawn_center + Vec3::Y * 1.0,
-            color: Color::srgb(neon[0], neon[1], neon[2]),
+            color: base_color,
             count: 20,
             speed: 2.0,
             lifetime: 1.5,
@@ -629,11 +638,15 @@ fn spawn_server_beacon(
     }
 }
 
-/// Handle server beacon resolved events: despawn the beacon with effects.
+/// Handle server beacon resolved events: despawn the beacon and its panels.
 fn handle_beacon_resolved(
     mut commands: Commands,
     mut events: MessageReader<BeaconResolvedEvent>,
-    beacons: Query<(Entity, &ServerBeaconId, &Transform)>,
+    beacons: Query<(Entity, &ServerBeaconId, &ExerciseId, &Transform)>,
+    panels: Query<(Entity, &super::panels::AnswerPanel)>,
+    poles: Query<(Entity, &ExerciseId), With<super::panels::PanelPole>>,
+    question_texts: Query<(Entity, &super::panels::QuestionText)>,
+    timer_texts: Query<(Entity, &super::panels::TimerText)>,
     mut styled_events: MessageWriter<StyledParticleEvent>,
 ) {
     for BeaconResolvedEvent {
@@ -641,7 +654,7 @@ fn handle_beacon_resolved(
         claimed_by: _,
     } in events.read()
     {
-        for (entity, sbid, tf) in &beacons {
+        for (entity, sbid, eid, tf) in &beacons {
             if sbid.0 == *beacon_id {
                 // Celebration burst
                 styled_events.write(StyledParticleEvent {
@@ -654,13 +667,32 @@ fn handle_beacon_resolved(
                     style: ParticleStyle::Ring,
                 });
 
+                // Clean up panels/poles/texts associated with this exercise
+                let exercise_id = eid.0;
+                for (e, panel) in &panels {
+                    if panel.exercise_id == exercise_id {
+                        commands.entity(e).despawn();
+                    }
+                }
+                for (e, pole_eid) in &poles {
+                    if pole_eid.0 == exercise_id {
+                        commands.entity(e).despawn();
+                    }
+                }
+                for (e, qt) in &question_texts {
+                    if qt.exercise_id == exercise_id {
+                        commands.entity(e).despawn();
+                    }
+                }
+                for (e, tt) in &timer_texts {
+                    if tt.exercise_id == exercise_id {
+                        commands.entity(e).despawn();
+                    }
+                }
+
                 commands.entity(entity).despawn();
             }
         }
-
-        // Also clean up any activated panels for this beacon
-        // (BeaconResolvedEvent fires with server beacon_id, panels use exercise_id)
-        // The process_pending_answer system handles panel cleanup for local answers.
     }
 }
 
@@ -715,6 +747,111 @@ fn handle_beacon_expired(
 
                 commands.entity(entity).despawn();
             }
+        }
+    }
+}
+
+/// Handle server beacon activated events: when another player activates a beacon,
+/// show greyed-out (spectator) panels for that beacon.
+#[allow(clippy::too_many_arguments)]
+fn handle_beacon_activated(
+    mut commands: Commands,
+    mut events: MessageReader<BeaconActivatedEvent>,
+    mut beacons: Query<(
+        Entity,
+        &ExerciseId,
+        &ServerBeaconId,
+        &mut BeaconState,
+        &BeaconFacing,
+        &Transform,
+        &mut super::exercise::ActiveExercise,
+    )>,
+    beacon_visuals: Query<(Entity, &ChildOf), With<BeaconVisual>>,
+    connection_status: Res<ConnectionStatus>,
+    terrain: Option<Res<crate::terrain::TerrainResource>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    let my_player_id = match &*connection_status {
+        ConnectionStatus::Connected { my_player_id, .. } => *my_player_id,
+        _ => return,
+    };
+    let Some(ref terrain) = terrain else {
+        return;
+    };
+
+    for BeaconActivatedEvent {
+        beacon_id,
+        activated_by,
+    } in events.read()
+    {
+        // Only handle activations by OTHER players — we already activated locally
+        if *activated_by == my_player_id {
+            continue;
+        }
+
+        for (entity, exercise_id, sbid, mut state, facing, beacon_tf, mut exercise) in &mut beacons {
+            if sbid.0 != *beacon_id {
+                continue;
+            }
+            if *state != BeaconState::Dormant {
+                continue;
+            }
+
+            *state = BeaconState::Activated;
+            exercise.state = ExerciseState::Active;
+
+            // Despawn beacon visual children
+            for (vis_entity, child_of) in &beacon_visuals {
+                if child_of.parent() == entity {
+                    commands.entity(vis_entity).despawn();
+                }
+            }
+
+            // Spawn greyed-out (spectator) panels
+            let facing_toward = beacon_tf.translation + facing.0 * 10.0;
+            super::panels::spawn_answer_panels(
+                &mut commands,
+                &mut meshes,
+                &mut materials,
+                &mut images,
+                &terrain.heightmap,
+                beacon_tf.translation,
+                facing_toward,
+                &exercise.choices,
+                exercise.correct_answer,
+                exercise_id.0,
+                false, // not interactive — spectator panels
+            );
+
+            // Text rotation
+            let to_facing = facing.0.normalize_or_zero();
+            let text_rotation = Transform::IDENTITY.looking_to(-to_facing, Vec3::Y).rotation;
+
+            // Spawn question text
+            super::panels::spawn_question_text(
+                &mut commands,
+                &mut meshes,
+                &mut materials,
+                &mut images,
+                &exercise.question_text(),
+                beacon_tf.translation,
+                text_rotation,
+                exercise_id.0,
+            );
+
+            // Spawn timer text
+            super::panels::spawn_timer_text(
+                &mut commands,
+                &mut meshes,
+                &mut materials,
+                &mut images,
+                exercise.time_limit,
+                beacon_tf.translation,
+                text_rotation,
+                exercise_id.0,
+            );
         }
     }
 }

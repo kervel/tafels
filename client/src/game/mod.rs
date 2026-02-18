@@ -16,6 +16,8 @@ impl Plugin for GamePlugin {
         app.init_state::<GameState>()
             .insert_resource(GameSession::default())
             .insert_resource(ActiveExercises::default())
+            .insert_resource(MultiplayerRoundState::default())
+            .insert_resource(Leaderboard::default())
             .add_plugins(exercise::ExercisePlugin)
             .add_plugins(panels::PanelPlugin)
             .add_plugins(scoring::ScoringPlugin)
@@ -23,6 +25,29 @@ impl Plugin for GamePlugin {
             .add_plugins(beacon::BeaconPlugin)
             .add_systems(OnEnter(GameState::Playing), init_game_session);
     }
+}
+
+#[derive(Resource, Default, Debug, Clone, PartialEq)]
+pub enum MultiplayerRoundState {
+    #[default]
+    None,
+    Lobby,
+    Countdown(f32),
+    Playing,
+    RoundOver,
+    Spectating,
+}
+
+#[derive(Debug, Clone)]
+pub struct LeaderboardEntry {
+    pub player_id: u32,
+    pub name: String,
+    pub coins: i32,
+}
+
+#[derive(Resource, Default)]
+pub struct Leaderboard {
+    pub entries: Vec<LeaderboardEntry>,
 }
 
 #[derive(Resource)]
@@ -68,6 +93,8 @@ pub struct GameSession {
     pub start_time: f64,
     pub round_time_remaining: f32,
     pub round_time_limit: f32,
+    pub player_name: String,
+    pub prev_coins: i32,
 }
 
 impl Default for GameSession {
@@ -86,6 +113,8 @@ impl Default for GameSession {
             start_time: 0.0,
             round_time_remaining: difficulty.round_time(),
             round_time_limit: difficulty.round_time(),
+            player_name: String::new(),
+            prev_coins: 10,
         }
     }
 }
@@ -97,6 +126,7 @@ fn init_game_session(
 ) {
     session.current_index = 0;
     session.coins = 10;
+    session.prev_coins = 10;
     session.correct_count = 0;
     session.wrong_count = 0;
     session.timeout_count = 0;

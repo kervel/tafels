@@ -7,9 +7,24 @@ pub enum AnimationState {
     Running,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LobbyPlayer {
+    pub player_id: u32,
+    pub name: String,
+    pub ready: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlayerScore {
+    pub player_id: u32,
+    pub name: String,
+    pub coins: i32,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct PlayerState {
     pub player_id: u32,
+    pub color_index: u8,
     pub x: f32,
     pub y: f32,
     pub z: f32,
@@ -27,11 +42,13 @@ pub struct BeaconInfo {
     pub choices: [u32; 4],
     pub correct_index: u8,
     pub lifetime: f32,
+    pub target_player_id: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ServerMessage {
     WorldSnapshot {
+        your_player_id: u32,
         players: Vec<PlayerState>,
         beacons: Vec<BeaconInfo>,
     },
@@ -48,12 +65,46 @@ pub enum ServerMessage {
     BeaconExpired {
         beacon_id: u32,
     },
+    BeaconActivated {
+        beacon_id: u32,
+        activated_by: u32,
+    },
+    BallShot {
+        player_id: u32,
+        x: f32,
+        y: f32,
+        z: f32,
+        vx: f32,
+        vy: f32,
+        vz: f32,
+    },
+    LobbyState {
+        players: Vec<LobbyPlayer>,
+    },
+    CountdownStart {
+        seconds: u8,
+    },
+    RoundStart {
+        round_time: f32,
+    },
+    RoundOver {
+        scores: Vec<PlayerScore>,
+    },
+    ScoreUpdate {
+        player_id: u32,
+        coins: i32,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientMessage {
     UpdateState(PlayerState),
     AnswerBeacon { beacon_id: u32, correct: bool },
+    ActivateBeacon { beacon_id: u32 },
+    ShootBall { x: f32, y: f32, z: f32, vx: f32, vy: f32, vz: f32 },
+    SetName { name: String },
+    Ready,
+    UpdateScore { coins: i32 },
 }
 
 pub fn encode<T: Serialize>(msg: &T) -> Vec<u8> {
@@ -72,6 +123,7 @@ mod tests {
     fn roundtrip_player_state() {
         let state = PlayerState {
             player_id: 42,
+            color_index: 0,
             x: 1.0,
             y: 2.5,
             z: -3.0,
@@ -88,8 +140,10 @@ mod tests {
     #[test]
     fn roundtrip_server_message() {
         let msg = ServerMessage::WorldSnapshot {
+            your_player_id: 1,
             players: vec![PlayerState {
                 player_id: 1,
+                color_index: 0,
                 x: 0.0,
                 y: 0.0,
                 z: 0.0,
@@ -105,12 +159,18 @@ mod tests {
                 choices: [56, 48, 63, 54],
                 correct_index: 0,
                 lifetime: 45.0,
+                target_player_id: 1,
             }],
         };
         let bytes = encode(&msg);
         let decoded: ServerMessage = decode(&bytes).unwrap();
         match decoded {
-            ServerMessage::WorldSnapshot { players, beacons } => {
+            ServerMessage::WorldSnapshot {
+                your_player_id,
+                players,
+                beacons,
+            } => {
+                assert_eq!(your_player_id, 1);
                 assert_eq!(players.len(), 1);
                 assert_eq!(beacons.len(), 1);
                 assert_eq!(beacons[0].question_text, "7 x 8 = ?");
@@ -160,6 +220,7 @@ mod tests {
     fn roundtrip_player_joined_left() {
         let joined = ServerMessage::PlayerJoined(PlayerState {
             player_id: 99,
+            color_index: 2,
             x: 10.0,
             y: 5.0,
             z: -10.0,

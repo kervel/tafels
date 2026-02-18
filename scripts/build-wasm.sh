@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Build the WASM client and place dist/ at the repo root for Docker context
+cd "$(dirname "$0")/../client"
+trunk build --release
+# Copy dist to repo root so Dockerfile can COPY it
+cp -r dist ../dist
+echo "WASM client built → dist/"

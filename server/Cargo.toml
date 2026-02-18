@@ -8,6 +8,9 @@ axum = { version = "0.7", features = ["ws"] }
 tokio = { version = "1", features = ["full"] }
 tafels-shared = { path = "../shared" }
 postcard = { version = "1", features = ["alloc"] }
+tower-http = { version = "0.6", features = ["fs", "compression-br", "set-header"] }
+tower = "0.5"
+http = "1"
 futures-util = "0.3"
 serde = "1"
 rand = "0.8"

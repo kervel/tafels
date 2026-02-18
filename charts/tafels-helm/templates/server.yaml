@@ -58,4 +58,7 @@ spec:
   ports:
     - port: 3000
       targetPort: 3000
-  type: ClusterIP
+      {{- if .Values.server.service.nodePort }}
+      nodePort: {{ .Values.server.service.nodePort }}
+      {{- end }}
+  type: {{ .Values.server.service.type }}

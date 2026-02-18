@@ -5,6 +5,8 @@ use bevy::prelude::*;
 use crate::game::ActiveExercises;
 use crate::game::GameSession;
 use crate::game::GameState;
+use crate::game::Leaderboard;
+use crate::game::MultiplayerRoundState;
 use crate::network::ConnectionStatus;
 
 pub struct HudPlugin;
@@ -23,6 +25,7 @@ impl Plugin for HudPlugin {
                     update_connection_indicator,
                     show_answer_feedback,
                     tick_feedback,
+                    update_leaderboard,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -55,6 +58,12 @@ struct ConnectionIndicator;
 struct FeedbackPopup {
     timer: f32,
 }
+
+#[derive(Component)]
+struct LeaderboardPanel;
+
+#[derive(Component)]
+struct LeaderboardEntryText;
 
 fn spawn_hud(mut commands: Commands) {
     commands
@@ -182,6 +191,37 @@ fn spawn_hud(mut commands: Commands) {
                             ..default()
                         },
                         BackgroundColor(Color::srgb(0.2, 0.9, 0.2)),
+                    ));
+                });
+
+            // Leaderboard panel (top-right, only visible in multiplayer)
+            parent
+                .spawn((
+                    LeaderboardPanel,
+                    Node {
+                        position_type: PositionType::Absolute,
+                        top: Val::Px(60.0),
+                        right: Val::Px(10.0),
+                        flex_direction: FlexDirection::Column,
+                        padding: UiRect::all(Val::Px(8.0)),
+                        min_width: Val::Px(180.0),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+                    Visibility::Hidden,
+                ))
+                .with_children(|lb| {
+                    lb.spawn((
+                        Text::new("Leaderboard"),
+                        TextFont {
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(1.0, 0.85, 0.0)),
+                        Node {
+                            margin: UiRect::bottom(Val::Px(4.0)),
+                            ..default()
+                        },
                     ));
                 });
         });
@@ -367,6 +407,68 @@ fn tick_feedback(
             // Fade out
             let alpha = popup.timer / 0.5;
             color.0 = color.0.with_alpha(alpha);
+        }
+    }
+}
+
+fn update_leaderboard(
+    mut commands: Commands,
+    leaderboard: Res<Leaderboard>,
+    round_state: Res<MultiplayerRoundState>,
+    status: Res<ConnectionStatus>,
+    mut panel_query: Query<(Entity, &mut Visibility), With<LeaderboardPanel>>,
+    entry_query: Query<Entity, With<LeaderboardEntryText>>,
+) {
+    let is_multiplayer = status.is_online()
+        && matches!(
+            *round_state,
+            MultiplayerRoundState::Playing | MultiplayerRoundState::RoundOver
+        );
+
+    for (panel_entity, mut vis) in &mut panel_query {
+        if !is_multiplayer || leaderboard.entries.is_empty() {
+            *vis = Visibility::Hidden;
+            continue;
+        }
+        *vis = Visibility::Inherited;
+
+        // Remove old entries
+        for entity in &entry_query {
+            commands.entity(entity).despawn();
+        }
+
+        // Sort entries by coins desc
+        let mut sorted = leaderboard.entries.clone();
+        sorted.sort_by(|a, b| b.coins.cmp(&a.coins));
+
+        let my_player_id = match &*status {
+            ConnectionStatus::Connected { my_player_id, .. } => Some(*my_player_id),
+            _ => None,
+        };
+
+        for (i, entry) in sorted.iter().enumerate() {
+            let is_me = my_player_id == Some(entry.player_id);
+            let color = if is_me {
+                Color::srgb(0.3, 1.0, 0.5)
+            } else {
+                Color::WHITE
+            };
+            let label = format!("{}. {} - {}", i + 1, entry.name, entry.coins);
+            commands.entity(panel_entity).with_children(|lb| {
+                lb.spawn((
+                    LeaderboardEntryText,
+                    Text::new(label),
+                    TextFont {
+                        font_size: 15.0,
+                        ..default()
+                    },
+                    TextColor(color),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(2.0)),
+                        ..default()
+                    },
+                ));
+            });
         }
     }
 }

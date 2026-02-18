@@ -11,6 +11,9 @@ server:
     repository: tafels-server
     tag: null
   replicas: 1
+  service:
+    type: ClusterIP
+    nodePort: null
   resources:
     requests:
       memory: "64Mi"

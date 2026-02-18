@@ -26,6 +26,10 @@ pub struct AnswerPanel {
 #[derive(Component)]
 pub struct PanelPole;
 
+/// Marker for panels that belong to another player's activation (non-interactive).
+#[derive(Component)]
+pub struct SpectatorPanel;
+
 /// Neon color palette for panels.
 pub const NEON_COLORS: [[f32; 3]; 4] = [
     [0.2, 0.5, 1.0], // Electric Blue
@@ -286,6 +290,7 @@ pub fn spawn_answer_panels(
     choices: &[u32; 4],
     correct_answer: u32,
     exercise_id: u32,
+    interactive: bool,
 ) {
     let to_player = (facing_toward - center).normalize_or_zero();
     let to_player_xz = Vec3::new(to_player.x, 0.0, to_player.z).normalize_or_zero();
@@ -329,19 +334,30 @@ pub fn spawn_answer_panels(
             scale: Vec3::ONE,
         };
 
-        let color = NEON_COLORS[i % 4];
-
-        let bg = [
-            (color[0] * 255.0).min(255.0) as u8,
-            (color[1] * 255.0).min(255.0) as u8,
-            (color[2] * 255.0).min(255.0) as u8,
-        ];
+        let (bg, base_color, emissive) = if interactive {
+            let color = NEON_COLORS[i % 4];
+            (
+                [
+                    (color[0] * 255.0).min(255.0) as u8,
+                    (color[1] * 255.0).min(255.0) as u8,
+                    (color[2] * 255.0).min(255.0) as u8,
+                ],
+                Color::WHITE,
+                bevy::color::LinearRgba::new(5.0, 5.0, 5.0, 1.0),
+            )
+        } else {
+            (
+                [100, 100, 110],
+                Color::srgb(0.4, 0.4, 0.45),
+                bevy::color::LinearRgba::new(0.3, 0.3, 0.35, 1.0),
+            )
+        };
         let texture = render_number_texture(images, value, [20, 20, 20], bg);
 
         let material = materials.add(StandardMaterial {
-            base_color: Color::WHITE,
+            base_color,
             base_color_texture: Some(texture.clone()),
-            emissive: bevy::color::LinearRgba::new(5.0, 5.0, 5.0, 1.0),
+            emissive,
             emissive_texture: Some(texture),
             ..default()
         });
@@ -349,29 +365,40 @@ pub fn spawn_answer_panels(
         let mesh = meshes.add(Cuboid::new(1.8, panel_height, 0.12));
 
         // Panel sign with point light child that illuminates the ground
-        let panel_light_color = Color::srgb(color[0], color[1], color[2]);
-        commands
-            .spawn((
-                Mesh3d(mesh),
-                MeshMaterial3d(material),
-                panel_transform,
-                AnswerPanel {
-                    value,
-                    is_correct: value == correct_answer,
-                    panel_index: i as u8,
-                    exercise_id,
-                },
-            ))
-            .with_child((
-                PointLight {
-                    color: panel_light_color,
-                    intensity: 600_000.0,
-                    range: 20.0,
-                    shadows_enabled: false,
-                    ..default()
-                },
-                Transform::from_translation(Vec3::new(0.0, -0.5, 0.5)),
-            ));
+        let neon = NEON_COLORS[i % 4];
+        let panel_light_color = if interactive {
+            Color::srgb(neon[0], neon[1], neon[2])
+        } else {
+            Color::srgb(0.3, 0.3, 0.35)
+        };
+        let light_intensity = if interactive { 600_000.0 } else { 100_000.0 };
+
+        let panel = AnswerPanel {
+            value,
+            is_correct: value == correct_answer,
+            panel_index: i as u8,
+            exercise_id,
+        };
+
+        let mut entity_commands = commands.spawn((
+            Mesh3d(mesh),
+            MeshMaterial3d(material),
+            panel_transform,
+            panel,
+        ));
+        if !interactive {
+            entity_commands.insert(SpectatorPanel);
+        }
+        entity_commands.with_child((
+            PointLight {
+                color: panel_light_color,
+                intensity: light_intensity,
+                range: 20.0,
+                shadows_enabled: false,
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(0.0, -0.5, 0.5)),
+        ));
 
         // Pole underneath
         let pole_center_y = ground_y + pole_height * 0.5;

@@ -6,28 +6,37 @@ use bevy::prelude::*;
 use crate::camera::orbit::OrbitCamera;
 use crate::character::CharacterMarker;
 use crate::game::GameState;
+use crate::network::{ConnectionStatus, RemoteBallShotEvent, WsConnection};
+use tafels_shared::protocol::{ClientMessage, encode};
 
 pub struct ProjectilePlugin;
 
 impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, spawn_ball.run_if(in_state(GameState::Playing)))
-            .add_systems(
-                FixedUpdate,
-                (
-                    physics::apply_gravity,
-                    physics::bounce_on_terrain,
-                    physics::tick_lifetime,
-                    collision::check_ball_panel_collision,
-                    collision::check_ball_beacon_collision,
-                )
-                    .run_if(in_state(GameState::Playing)),
-            );
+        app.add_systems(
+            Update,
+            (spawn_ball, spawn_remote_ball).run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(
+            FixedUpdate,
+            (
+                physics::apply_gravity,
+                physics::bounce_on_terrain,
+                physics::tick_lifetime,
+                collision::check_ball_panel_collision,
+                collision::check_ball_beacon_collision,
+            )
+                .run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
 #[derive(Component)]
 pub struct Projectile;
+
+/// Marker for balls shot by remote players (visual only, no game collision).
+#[derive(Component)]
+pub struct RemoteProjectile;
 
 #[derive(Component)]
 pub struct Velocity(pub Vec3);
@@ -51,6 +60,8 @@ fn spawn_ball(
     camera: Query<(&Transform, &OrbitCamera), Without<CharacterMarker>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    ws: Option<Res<WsConnection>>,
+    connection_status: Res<ConnectionStatus>,
 ) {
     if !keyboard.just_pressed(KeyCode::Space) {
         return;
@@ -110,4 +121,60 @@ fn spawn_ball(
             },
             Transform::IDENTITY,
         ));
+
+    // Send to server so other players can see the ball
+    if connection_status.is_online() {
+        if let Some(ws) = ws {
+            let msg = ClientMessage::ShootBall {
+                x: spawn_pos.x,
+                y: spawn_pos.y,
+                z: spawn_pos.z,
+                vx: velocity.x,
+                vy: velocity.y,
+                vz: velocity.z,
+            };
+            ws.send_binary(encode(&msg));
+        }
+    }
+}
+
+/// Spawn visual-only balls for remote players.
+fn spawn_remote_ball(
+    mut commands: Commands,
+    mut events: MessageReader<RemoteBallShotEvent>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    for event in events.read() {
+        let material = materials.add(StandardMaterial {
+            base_color: Color::srgb(0.2, 0.4, 0.9),
+            emissive: bevy::color::LinearRgba::new(3.0, 5.0, 20.0, 1.0),
+            ..default()
+        });
+
+        commands
+            .spawn((
+                Mesh3d(meshes.add(Sphere::new(0.25))),
+                MeshMaterial3d(material),
+                Transform::from_translation(event.position),
+                Projectile,
+                RemoteProjectile,
+                Velocity(event.velocity),
+                BounceCount {
+                    count: 0,
+                    max_bounces: 8,
+                },
+                ProjectileLifetime { remaining: 10.0 },
+            ))
+            .with_child((
+                PointLight {
+                    color: Color::srgb(0.3, 0.5, 1.0),
+                    intensity: 800_000.0,
+                    range: 25.0,
+                    shadows_enabled: false,
+                    ..default()
+                },
+                Transform::IDENTITY,
+            ));
+    }
 }
