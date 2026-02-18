@@ -10,12 +10,30 @@ pub fn read_movement_input(
     joystick: Res<JoystickState>,
     mut query: Query<(&mut MovementInput, &mut CharacterController)>,
 ) {
-    // Don't overwrite joystick input with keyboard zeros
-    if joystick.active {
-        return;
-    }
-
     for (mut input, mut controller) in &mut query {
+        // Joystick takes priority over keyboard
+        if joystick.active {
+            let delta = joystick.current - joystick.origin;
+            let dist = delta.length();
+
+            if dist < 5.0 {
+                // Dead zone
+                input.direction = Vec2::ZERO;
+                controller.running = false;
+            } else {
+                let normalized = delta / joystick.max_radius;
+                let clamped = if normalized.length() > 1.0 {
+                    normalized.normalize()
+                } else {
+                    normalized
+                };
+                // Touch coords: X right, Y down. Movement: X right, Y forward.
+                input.direction = Vec2::new(clamped.x, -clamped.y);
+                controller.running = dist / joystick.max_radius >= 0.9;
+            }
+            continue;
+        }
+
         let mut dir = Vec2::ZERO;
 
         if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {

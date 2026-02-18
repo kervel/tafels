@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 use bevy::input::touch::{TouchInput, TouchPhase};
 
-use crate::character::{CharacterController, MovementInput};
-use crate::character::controller::read_movement_input;
 use crate::game::GameState;
 use super::{TouchDevice, touch_playing};
 
@@ -21,7 +19,6 @@ impl Plugin for JoystickPlugin {
                 (
                     touch_joystick_input,
                     update_joystick_ui,
-                    apply_joystick_to_movement.before(read_movement_input),
                 )
                     .chain()
                     .run_if(touch_playing),
@@ -217,32 +214,3 @@ fn update_joystick_ui(
     }
 }
 
-fn apply_joystick_to_movement(
-    joystick: Res<JoystickState>,
-    mut query: Query<(&mut MovementInput, &mut CharacterController)>,
-) {
-    if !joystick.active {
-        return;
-    }
-
-    let delta = joystick.current - joystick.origin;
-    let dist = delta.length();
-
-    if dist < 5.0 {
-        return; // Dead zone
-    }
-
-    let normalized = delta / joystick.max_radius;
-    let clamped = if normalized.length() > 1.0 {
-        normalized.normalize()
-    } else {
-        normalized
-    };
-
-    for (mut input, mut controller) in &mut query {
-        // Bevy touch coords: X right, Y down. Movement: X right, Y forward.
-        // Flip Y for movement (touch down = forward)
-        input.direction = Vec2::new(clamped.x, -clamped.y);
-        controller.running = dist / joystick.max_radius >= 0.9;
-    }
-}
