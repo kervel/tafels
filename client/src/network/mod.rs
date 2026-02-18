@@ -12,10 +12,6 @@ use tafels_shared::protocol::{
 use crate::character::{CharacterMarker, CharacterState};
 use crate::game::{GameSession, GameState, Leaderboard, LeaderboardEntry, MultiplayerRoundState};
 
-/// For native dev builds, defaults to localhost.
-#[cfg(not(target_arch = "wasm32"))]
-const SERVER_URL: &str = "ws://localhost:30000/ws";
-
 /// For WASM builds, derive WebSocket URL from the page's origin at runtime.
 #[cfg(target_arch = "wasm32")]
 fn server_url() -> String {
@@ -39,9 +35,10 @@ fn server_url() -> String {
     }
 }
 
+/// For native builds, use SERVER_URL env var or derive from page origin.
 #[cfg(not(target_arch = "wasm32"))]
 fn server_url() -> String {
-    SERVER_URL.to_string()
+    std::env::var("SERVER_URL").unwrap_or_else(|_| "ws://localhost:30000/ws".to_string())
 }
 
 pub struct NetworkPlugin;
