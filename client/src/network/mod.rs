@@ -111,7 +111,9 @@ impl WsConnection {
 pub enum ConnectionStatus {
     #[default]
     Disconnected,
-    Connecting,
+    Connecting {
+        timeout: Timer,
+    },
     Connected {
         my_player_id: u32,
         my_color_index: u8,
@@ -194,7 +196,9 @@ fn connect_to_server(
         Ok((sender, receiver)) => {
             info!("Connecting to server at {url}");
             commands.insert_resource(WsConnection::new(sender, receiver));
-            *status = ConnectionStatus::Connecting;
+            *status = ConnectionStatus::Connecting {
+                timeout: Timer::from_seconds(5.0, TimerMode::Once),
+            };
         }
         Err(e) => {
             warn!("Failed to connect to server: {e}. Running in single-player mode.");
@@ -230,12 +234,17 @@ fn receive_messages(
     session: Res<GameSession>,
     time: Res<Time>,
 ) {
-    // Handle reconnection timer
+    // Handle reconnection timer (give up after 3 attempts → single-player)
     if let ConnectionStatus::Reconnecting {
         attempt,
         ref mut next_try,
     } = *status
     {
+        if attempt > 3 {
+            warn!("Failed to connect after 3 attempts. Falling back to single-player mode.");
+            *status = ConnectionStatus::Disconnected;
+            return;
+        }
         next_try.tick(time.delta());
         if next_try.just_finished() {
             let url = server_url();
@@ -243,10 +252,12 @@ fn receive_messages(
                 Ok((sender, receiver)) => {
                     info!("Reconnecting to server (attempt {attempt})...");
                     commands.insert_resource(WsConnection::new(sender, receiver));
-                    *status = ConnectionStatus::Connecting;
+                    *status = ConnectionStatus::Connecting {
+                        timeout: Timer::from_seconds(5.0, TimerMode::Once),
+                    };
                 }
                 Err(_) => {
-                    let backoff = (2u64.pow(attempt.min(5))).min(30) as f32;
+                    let backoff = (2u64.pow(attempt.min(3))).min(8) as f32;
                     *status = ConnectionStatus::Reconnecting {
                         attempt: attempt + 1,
                         next_try: Timer::from_seconds(backoff, TimerMode::Once),
@@ -261,8 +272,19 @@ fn receive_messages(
         return;
     };
 
+    // Timeout if stuck in Connecting state
+    if let ConnectionStatus::Connecting { ref mut timeout } = *status {
+        timeout.tick(time.delta());
+        if timeout.just_finished() {
+            warn!("Connection timed out. Falling back to single-player mode.");
+            commands.remove_resource::<WsConnection>();
+            *status = ConnectionStatus::Disconnected;
+            return;
+        }
+    }
+
     let my_player_id = match &*status {
-        ConnectionStatus::Connecting => None,
+        ConnectionStatus::Connecting { .. } => None,
         ConnectionStatus::Connected { my_player_id, .. } => Some(*my_player_id),
         _ => return,
     };
