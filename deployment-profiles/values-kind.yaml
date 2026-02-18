@@ -1,0 +1,10 @@
+disableResourceRequests: true
+
+server:
+  replicas: 1
+  service:
+    type: NodePort
+    nodePort: 30000
+
+ingress:
+  enable: false

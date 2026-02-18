@@ -1,0 +1,7 @@
+disableResourceRequests: true
+
+server:
+  replicas: 1
+
+ingress:
+  enable: false

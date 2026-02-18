@@ -1,0 +1,22 @@
+[package]
+name = "tafels-client"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "3dt"
+path = "src/main.rs"
+
+[dependencies]
+bevy = { version = "0.18", features = ["jpeg", "bevy_dev_tools"] }
+noise = "0.9"
+rand = "0.8"
+tafels-shared = { path = "../shared" }
+ewebsock = "0.8"
+postcard = { version = "1", features = ["alloc"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+getrandom_0_3 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["Window", "Location"] }

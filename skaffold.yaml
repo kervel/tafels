@@ -1,0 +1,47 @@
+apiVersion: skaffold/v4beta9
+kind: Config
+metadata:
+  name: tafels
+build:
+  artifacts:
+    - image: tafels-server
+      context: .
+      docker:
+        dockerfile: server/Dockerfile
+  hooks:
+    before:
+      - command: ["bash", "scripts/build-wasm.sh"]
+  tagPolicy:
+    inputDigest: {}
+  local:
+    concurrency: 1
+
+deploy:
+  helm:
+    releases:
+      - name: tafels
+        chartPath: "charts/tafels-helm"
+        valuesFiles:
+          - deployment-profiles/values-local.yaml
+        setValueTemplates:
+          server.image.repository: '{{.IMAGE_REPO_tafels_server}}'
+          server.image.tag: '{{.IMAGE_TAG_tafels_server}}'
+
+profiles:
+  - name: local
+    patches:
+      - op: replace
+        path: /deploy/helm/releases/0/valuesFiles/0
+        value: deployment-profiles/values-local.yaml
+  - name: kind
+    patches:
+      - op: replace
+        path: /deploy/helm/releases/0/valuesFiles/0
+        value: deployment-profiles/values-kind.yaml
+  - name: kind-no-wasm
+    patches:
+      - op: replace
+        path: /deploy/helm/releases/0/valuesFiles/0
+        value: deployment-profiles/values-kind.yaml
+      - op: remove
+        path: /build/hooks
