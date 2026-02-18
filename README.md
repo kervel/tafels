@@ -2,7 +2,7 @@
 
 A 3D educational game that teaches multiplication and division tables through an immersive alpine landscape. Walk through the terrain, find glowing question beacons, and throw balls at the correct answers to earn coins.
 
-**[Play now in your browser](https://kervel.github.io/tafels/)** (single-player)
+**[Play now in your browser](https://kervel.github.io/tafels/)** (single-player — some graphical effects like shadows and atmospheric scattering are disabled in the web version due to current Bevy WebGPU limitations)
 
 ![Exploring the landscape](doc/screenshot1.png)
 
