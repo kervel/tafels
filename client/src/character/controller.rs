@@ -21,22 +21,15 @@ pub fn read_movement_input(
                 input.direction = Vec2::ZERO;
                 controller.running = false;
             } else {
-                let normalized = delta / joystick.max_radius;
-                let clamped = if normalized.length() > 1.0 {
-                    normalized.normalize()
-                } else {
-                    normalized
-                };
-                // Apply gentle power curve so small deflections give fine control
-                let mag = clamped.length();
-                let curved = if mag > 0.001 {
-                    clamped * (mag.powf(1.5) / mag)
-                } else {
-                    Vec2::ZERO
-                };
+                // Normalize each axis independently for per-axis power curves
+                let nx = (delta.x / joystick.max_radius).clamp(-1.0, 1.0);
+                let ny = (delta.y / joystick.max_radius).clamp(-1.0, 1.0);
+                // Steeper curve on X (2.5) for fine lateral aiming control
+                // Gentler curve on Y (1.5) for forward/back
+                let cx = nx.abs().powf(2.5) * nx.signum() * 0.4;
+                let cy = ny.abs().powf(1.5) * ny.signum();
                 // Touch coords: X right, Y down. Movement: X right, Y forward.
-                // Reduce lateral (turning) speed to 40% — forward feels right
-                input.direction = Vec2::new(curved.x * 0.4, -curved.y);
+                input.direction = Vec2::new(cx, -cy);
                 controller.running = false;
             }
             continue;
