@@ -259,7 +259,7 @@ fn spawn_beacon(
         style: ParticleStyle::RisingSparkle,
     });
 
-    active_exercises.cooldown_timer = 2.0;
+    active_exercises.cooldown_timer = 0.5;
 }
 
 fn tick_world_lifetime(

@@ -64,7 +64,7 @@ impl Default for ActiveExercises {
         Self {
             total_engaged: 0,
             total_spawned: 0,
-            target_concurrent: 6,
+            target_concurrent: 10,
             next_exercise_id: 0,
             cooldown_timer: 0.0,
         }
@@ -105,7 +105,7 @@ impl Default for GameSession {
         let difficulty = Difficulty::Easy;
         Self {
             difficulty,
-            total_exercises: 20,
+            total_exercises: 30,
             current_index: 0,
             coins: 10,
             correct_count: 0,

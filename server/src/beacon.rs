@@ -7,9 +7,9 @@ use crate::state::AppState;
 
 /// Maximum concurrent beacons in the world.
 /// Maximum concurrent beacons per player in the world.
-const MAX_BEACONS_PER_PLAYER: usize = 5;
+const MAX_BEACONS_PER_PLAYER: usize = 10;
 /// Seconds between beacon spawn attempts.
-const SPAWN_INTERVAL: f32 = 3.0;
+const SPAWN_INTERVAL: f32 = 1.0;
 /// Beacon lifetime in seconds.
 const BEACON_LIFETIME: f32 = 45.0;
 use tafels_shared::constants::MIN_BEACON_SEPARATION;
