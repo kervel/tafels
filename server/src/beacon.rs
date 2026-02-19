@@ -79,10 +79,11 @@ impl BeaconManager {
                 *beacon_counts.entry(beacon.target_player_id).or_insert(0) += 1;
             }
 
-            // Find players that need more beacons
+            // Find players that need more beacons (skip solo players)
             let players: Vec<(u32, f32, f32)> = world
                 .players
                 .values()
+                .filter(|p| !world.player_solo.contains(&p.player_id))
                 .filter(|p| beacon_counts.get(&p.player_id).copied().unwrap_or(0) < MAX_BEACONS_PER_PLAYER)
                 .map(|p| (p.player_id, p.x, p.z))
                 .collect();

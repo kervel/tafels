@@ -127,6 +127,7 @@ pub fn build_lobby_players(world: &GameWorld) -> Vec<LobbyPlayer> {
                 .cloned()
                 .unwrap_or_else(|| format!("Player {pid}")),
             ready: world.player_ready.contains(&pid),
+            playing_solo: world.player_solo.contains(&pid),
         })
         .collect()
 }

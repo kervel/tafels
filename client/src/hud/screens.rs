@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 use crate::game::difficulty::Difficulty;
-use crate::game::{ForceSinglePlayer, GameSession, GameState, Leaderboard, MultiplayerRoundState};
-use crate::network::{RoundMessageBuffer, WsConnection};
+use crate::game::{ActiveExercises, GameSession, GameState, Leaderboard, MultiplayerRoundState};
+use crate::network::{ConnectionStatus, RoundMessageBuffer, WsConnection};
 use crate::touch::TouchDevice;
 use crate::touch::keyboard::SoftKeyboardInput;
 use tafels_shared::protocol::{ClientMessage, encode};
@@ -15,8 +15,7 @@ impl Plugin for ScreensPlugin {
             .add_systems(OnExit(GameState::Menu), despawn_menu)
             .add_systems(
                 Update,
-                (handle_menu_input, handle_singleplayer_toggle)
-                    .run_if(in_state(GameState::Menu)),
+                handle_menu_input.run_if(in_state(GameState::Menu)),
             )
             .add_systems(
                 Update,
@@ -80,12 +79,9 @@ struct CountdownText;
 struct RoundOverScreen;
 
 #[derive(Component)]
-struct SinglePlayerButton;
+struct PlaySoloButton;
 
-#[derive(Component)]
-struct SinglePlayerButtonText;
-
-fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, force_sp: Res<ForceSinglePlayer>) {
+fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
     commands
         .spawn((
             MenuScreen,
@@ -215,37 +211,6 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, force_sp
                     });
             }
 
-            // Single-player toggle
-            let sp_label = if force_sp.0 { "Single Player" } else { "Multiplayer" };
-            let sp_color = if force_sp.0 {
-                Color::srgba(0.7, 0.7, 0.7, 0.6)
-            } else {
-                Color::srgba(0.4, 0.7, 1.0, 0.8)
-            };
-            parent
-                .spawn((
-                    SinglePlayerButton,
-                    Button,
-                    Node {
-                        padding: UiRect::axes(Val::Px(12.0), Val::Px(6.0)),
-                        margin: UiRect::top(Val::Px(24.0)),
-                        border: UiRect::all(Val::Px(1.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::NONE),
-                    BorderColor::all(sp_color),
-                ))
-                .with_children(|btn| {
-                    btn.spawn((
-                        SinglePlayerButtonText,
-                        Text::new(sp_label),
-                        TextFont {
-                            font_size: 16.0,
-                            ..default()
-                        },
-                        TextColor(sp_color),
-                    ));
-                });
         });
 }
 
@@ -370,31 +335,6 @@ fn handle_menu_input(
     }
 }
 
-fn handle_singleplayer_toggle(
-    interaction: Query<&Interaction, (Changed<Interaction>, With<SinglePlayerButton>)>,
-    mut force_sp: ResMut<ForceSinglePlayer>,
-    mut text_query: Query<(&mut Text, &mut TextColor), With<SinglePlayerButtonText>>,
-    mut border_query: Query<&mut BorderColor, With<SinglePlayerButton>>,
-) {
-    for inter in &interaction {
-        if *inter == Interaction::Pressed {
-            force_sp.0 = !force_sp.0;
-            let (label, color) = if force_sp.0 {
-                ("Single Player", Color::srgba(0.7, 0.7, 0.7, 0.6))
-            } else {
-                ("Multiplayer", Color::srgba(0.4, 0.7, 1.0, 0.8))
-            };
-            for (mut text, mut tc) in &mut text_query {
-                **text = label.to_string();
-                tc.0 = color;
-            }
-            for mut bc in &mut border_query {
-                *bc = BorderColor::all(color);
-            }
-        }
-    }
-}
-
 // --- Lobby Screen ---
 
 fn manage_lobby_screen(
@@ -423,8 +363,16 @@ fn manage_lobby_screen(
             for lobby_entity in &existing {
                 commands.entity(lobby_entity).with_children(|parent| {
                     for p in &round_buf.lobby_states {
-                        let status = if p.ready { "Ready" } else { "---" };
-                        let color = if p.ready {
+                        let status = if p.playing_solo {
+                            "(playing solo)"
+                        } else if p.ready {
+                            "Ready"
+                        } else {
+                            "---"
+                        };
+                        let color = if p.playing_solo {
+                            Color::srgb(0.4, 0.7, 1.0)
+                        } else if p.ready {
                             Color::srgb(0.3, 1.0, 0.5)
                         } else {
                             Color::srgba(0.7, 0.7, 0.7, 0.9)
@@ -484,45 +432,115 @@ fn spawn_lobby_screen(commands: &mut Commands) {
                 },
             ));
 
-            // Ready button
+            // Buttons container
             parent
-                .spawn((
-                    ReadyButton,
-                    Button,
-                    Node {
-                        width: Val::Px(200.0),
-                        height: Val::Px(56.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(2.0)),
-                        margin: UiRect::top(Val::Px(20.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
-                    BorderColor::all(Color::srgb(0.3, 1.0, 0.5)),
-                ))
-                .with_children(|btn| {
-                    btn.spawn((
-                        Text::new("Ready!"),
-                        TextFont {
-                            font_size: 24.0,
+                .spawn(Node {
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    column_gap: Val::Px(16.0),
+                    margin: UiRect::top(Val::Px(20.0)),
+                    ..default()
+                })
+                .with_children(|row| {
+                    // Ready button
+                    row.spawn((
+                        ReadyButton,
+                        Button,
+                        Node {
+                            width: Val::Px(200.0),
+                            height: Val::Px(56.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            border: UiRect::all(Val::Px(2.0)),
                             ..default()
                         },
-                        TextColor(Color::srgb(0.3, 1.0, 0.5)),
-                    ));
+                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
+                        BorderColor::all(Color::srgb(0.3, 1.0, 0.5)),
+                    ))
+                    .with_children(|btn| {
+                        btn.spawn((
+                            Text::new("Ready!"),
+                            TextFont {
+                                font_size: 24.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.3, 1.0, 0.5)),
+                        ));
+                    });
+
+                    // Play Solo button
+                    row.spawn((
+                        PlaySoloButton,
+                        Button,
+                        Node {
+                            width: Val::Px(200.0),
+                            height: Val::Px(56.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            border: UiRect::all(Val::Px(2.0)),
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
+                        BorderColor::all(Color::srgb(0.4, 0.7, 1.0)),
+                    ))
+                    .with_children(|btn| {
+                        btn.spawn((
+                            Text::new("Play Solo"),
+                            TextFont {
+                                font_size: 24.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.4, 0.7, 1.0)),
+                        ));
+                    });
                 });
         });
 }
 
 fn handle_lobby_input(
-    interaction: Query<&Interaction, (Changed<Interaction>, With<ReadyButton>)>,
+    ready_interaction: Query<&Interaction, (Changed<Interaction>, With<ReadyButton>)>,
+    solo_interaction: Query<&Interaction, (Changed<Interaction>, With<PlaySoloButton>)>,
     ws: Option<Res<WsConnection>>,
+    mut connection_status: ResMut<ConnectionStatus>,
+    mut round_state: ResMut<MultiplayerRoundState>,
+    mut active_exercises: ResMut<ActiveExercises>,
+    mut session: ResMut<GameSession>,
 ) {
-    for inter in &interaction {
+    for inter in &ready_interaction {
         if *inter == Interaction::Pressed {
             if let Some(ws) = &ws {
                 ws.send_binary(encode(&ClientMessage::Ready));
             }
+        }
+    }
+
+    for inter in &solo_interaction {
+        if *inter == Interaction::Pressed {
+            if let Some(ws) = &ws {
+                // Send EnterSolo to server
+                ws.send_binary(encode(&ClientMessage::EnterSolo));
+            }
+            // Transition connection state to ConnectedSolo
+            if let ConnectionStatus::Connected { my_player_id, my_color_index, .. } = *connection_status {
+                *connection_status = ConnectionStatus::ConnectedSolo {
+                    my_player_id,
+                    my_color_index,
+                };
+            }
+            // Exit lobby, start solo gameplay
+            *round_state = MultiplayerRoundState::None;
+            // Reset exercises and session for a fresh solo round
+            active_exercises.total_engaged = 0;
+            active_exercises.cooldown_timer = 0.0;
+            session.current_index = 0;
+            session.correct_count = 0;
+            session.wrong_count = 0;
+            session.timeout_count = 0;
+            session.coins = 0;
+            session.prev_coins = 0;
+            session.combo = 0;
+            session.max_combo = 0;
         }
     }
 }
@@ -700,7 +718,7 @@ fn manage_round_over_screen(
 
 // --- Game Over Screen (single-player) ---
 
-fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>) {
+fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, connection_status: Res<ConnectionStatus>) {
     let total = session.correct_count + session.wrong_count + session.timeout_count;
     let accuracy = if total > 0 {
         (session.correct_count as f32 / total as f32 * 100.0) as u32
@@ -789,8 +807,13 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>) {
                     BorderColor::all(Color::srgb(0.3, 1.0, 0.5)),
                 ))
                 .with_children(|btn| {
+                    let button_text = if connection_status.is_solo() {
+                        "Return to Lobby"
+                    } else {
+                        "Play Again"
+                    };
                     btn.spawn((
-                        Text::new("Play Again"),
+                        Text::new(button_text),
                         TextFont {
                             font_size: 24.0,
                             ..default()
@@ -810,10 +833,30 @@ fn despawn_game_over(mut commands: Commands, query: Query<Entity, With<GameOverS
 fn handle_game_over_input(
     interaction: Query<&Interaction, (Changed<Interaction>, With<RestartButton>)>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut connection_status: ResMut<ConnectionStatus>,
+    mut round_state: ResMut<MultiplayerRoundState>,
+    ws: Option<Res<WsConnection>>,
 ) {
     for interaction in &interaction {
         if *interaction == Interaction::Pressed {
-            next_state.set(GameState::Menu);
+            if connection_status.is_solo() {
+                // Return to lobby: send LeaveSolo, restore Connected state
+                if let ConnectionStatus::ConnectedSolo { my_player_id, my_color_index } = *connection_status {
+                    if let Some(ws) = &ws {
+                        ws.send_binary(encode(&ClientMessage::LeaveSolo));
+                    }
+                    *connection_status = ConnectionStatus::Connected {
+                        my_player_id,
+                        my_color_index,
+                        send_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+                    };
+                    *round_state = MultiplayerRoundState::Lobby;
+                    // Go back to Playing state to show the lobby screen
+                    next_state.set(GameState::Playing);
+                }
+            } else {
+                next_state.set(GameState::Menu);
+            }
         }
     }
 }

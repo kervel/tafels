@@ -1,3 +1,4 @@
+pub mod notification;
 pub mod screens;
 
 use bevy::prelude::*;
@@ -29,7 +30,8 @@ impl Plugin for HudPlugin {
                 )
                     .run_if(in_state(GameState::Playing)),
             )
-            .add_plugins(screens::ScreensPlugin);
+            .add_plugins(screens::ScreensPlugin)
+            .add_plugins(notification::NotificationPlugin);
     }
 }
 
@@ -314,7 +316,9 @@ fn update_connection_indicator(
     mut query: Query<(&mut Text, &mut TextColor), With<ConnectionIndicator>>,
 ) {
     for (mut text, mut color) in &mut query {
-        let (label, c) = if status.is_online() {
+        let (label, c) = if status.is_solo() {
+            ("Solo (Online)", Color::srgb(0.4, 0.7, 1.0))
+        } else if status.is_online() {
             ("Online", Color::srgb(0.3, 0.9, 0.3))
         } else {
             ("Offline", Color::srgb(0.9, 0.3, 0.3))

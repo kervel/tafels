@@ -12,6 +12,7 @@ pub struct LobbyPlayer {
     pub player_id: u32,
     pub name: String,
     pub ready: bool,
+    pub playing_solo: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,6 +107,8 @@ pub enum ClientMessage {
     SetDifficulty { difficulty: crate::difficulty::Difficulty },
     Ready,
     UpdateScore { coins: i32 },
+    EnterSolo,
+    LeaveSolo,
 }
 
 pub fn encode<T: Serialize>(msg: &T) -> Vec<u8> {

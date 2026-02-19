@@ -28,6 +28,7 @@ pub struct GameWorld {
     pub player_names: HashMap<u32, String>,
     pub player_ready: HashSet<u32>,
     pub player_coins: HashMap<u32, i32>,
+    pub player_solo: HashSet<u32>,
     pub round_state: RoundState,
     pub difficulty: Difficulty,
 }
@@ -42,6 +43,7 @@ impl GameWorld {
             next_beacon_id: 1,
             player_names: HashMap::new(),
             player_ready: HashSet::new(),
+            player_solo: HashSet::new(),
             player_coins: HashMap::new(),
             round_state: RoundState::Lobby,
             difficulty: Difficulty::Easy,
@@ -68,6 +70,7 @@ impl GameWorld {
         self.players.remove(&player_id);
         self.player_names.remove(&player_id);
         self.player_ready.remove(&player_id);
+        self.player_solo.remove(&player_id);
         self.player_coins.remove(&player_id);
     }
 

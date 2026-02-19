@@ -10,7 +10,7 @@ use tafels_shared::protocol::{
 };
 
 use crate::character::{CharacterMarker, CharacterState};
-use crate::game::{ForceSinglePlayer, GameSession, GameState, Leaderboard, LeaderboardEntry, MultiplayerRoundState};
+use crate::game::{GameSession, GameState, Leaderboard, LeaderboardEntry, MultiplayerRoundState};
 
 /// For WASM builds, derive WebSocket URL from the page's origin at runtime.
 #[cfg(target_arch = "wasm32")]
@@ -119,6 +119,10 @@ pub enum ConnectionStatus {
         my_color_index: u8,
         send_timer: Timer,
     },
+    ConnectedSolo {
+        my_player_id: u32,
+        my_color_index: u8,
+    },
     Reconnecting {
         attempt: u32,
         next_try: Timer,
@@ -128,6 +132,25 @@ pub enum ConnectionStatus {
 impl ConnectionStatus {
     pub fn is_online(&self) -> bool {
         matches!(self, ConnectionStatus::Connected { .. })
+    }
+
+    pub fn is_solo(&self) -> bool {
+        matches!(self, ConnectionStatus::ConnectedSolo { .. })
+    }
+
+    pub fn is_connected_or_solo(&self) -> bool {
+        matches!(
+            self,
+            ConnectionStatus::Connected { .. } | ConnectionStatus::ConnectedSolo { .. }
+        )
+    }
+
+    pub fn my_player_id(&self) -> Option<u32> {
+        match self {
+            ConnectionStatus::Connected { my_player_id, .. }
+            | ConnectionStatus::ConnectedSolo { my_player_id, .. } => Some(*my_player_id),
+            _ => None,
+        }
     }
 }
 
@@ -184,11 +207,9 @@ pub struct RoundMessageBuffer {
 fn connect_to_server(
     mut status: ResMut<ConnectionStatus>,
     mut commands: Commands,
-    force_sp: Res<ForceSinglePlayer>,
 ) {
-    if force_sp.0 {
-        info!("Single-player mode selected. Skipping server connection.");
-        *status = ConnectionStatus::Disconnected;
+    // If already connected (e.g., returning from solo game-over), skip reconnection
+    if status.is_connected_or_solo() {
         return;
     }
     let url = server_url();
@@ -212,6 +233,11 @@ fn disconnect_from_server(
     mut commands: Commands,
     mut round_state: ResMut<MultiplayerRoundState>,
 ) {
+    // When solo, preserve the WebSocket connection through GameOver so we can
+    // return to the lobby after the game-over screen.
+    if status.is_solo() {
+        return;
+    }
     commands.remove_resource::<WsConnection>();
     *status = ConnectionStatus::Disconnected;
     *round_state = MultiplayerRoundState::None;
@@ -285,7 +311,8 @@ fn receive_messages(
 
     let my_player_id = match &*status {
         ConnectionStatus::Connecting { .. } => None,
-        ConnectionStatus::Connected { my_player_id, .. } => Some(*my_player_id),
+        ConnectionStatus::Connected { my_player_id, .. }
+        | ConnectionStatus::ConnectedSolo { my_player_id, .. } => Some(*my_player_id),
         _ => return,
     };
 
@@ -502,7 +529,10 @@ fn handle_round_events(
 ) {
     if round_buf.lobby_dirty {
         round_buf.lobby_dirty = false;
-        *round_state = MultiplayerRoundState::Lobby;
+        // Don't force Lobby state when playing solo — just update the data
+        if !status.is_solo() {
+            *round_state = MultiplayerRoundState::Lobby;
+        }
         leaderboard.entries = round_buf
             .lobby_states
             .iter()
@@ -550,11 +580,11 @@ fn handle_round_events(
     round_buf.score_updates.clear();
 
     // Update own score in leaderboard
-    if let ConnectionStatus::Connected { my_player_id, .. } = &*status {
+    if let Some(pid) = status.my_player_id() {
         if let Some(entry) = leaderboard
             .entries
             .iter_mut()
-            .find(|e| e.player_id == *my_player_id)
+            .find(|e| e.player_id == pid)
         {
             entry.coins = session.coins;
         }

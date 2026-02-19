@@ -84,8 +84,12 @@ fn spawn_beacon(
     mut styled_events: MessageWriter<StyledParticleEvent>,
     connection_status: Res<ConnectionStatus>,
 ) {
-    // In multiplayer mode (or while connecting), beacons are managed by the server
-    if !matches!(*connection_status, ConnectionStatus::Disconnected) {
+    // In multiplayer mode (or while connecting), beacons are managed by the server.
+    // In solo mode or disconnected mode, spawn beacons locally.
+    if !matches!(
+        *connection_status,
+        ConnectionStatus::Disconnected | ConnectionStatus::ConnectedSolo { .. }
+    ) {
         return;
     }
     // Tick cooldown

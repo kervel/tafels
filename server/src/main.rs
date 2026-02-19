@@ -265,10 +265,12 @@ async fn handle_client_message(player_id: u32, msg: ClientMessage, state: &AppSt
             };
             let _ = state.broadcast_tx.send(encode(&msg));
 
-            // Check if all players are ready (need at least 2)
-            let total_named = world.player_names.len();
+            // Check if all non-solo players are ready (need at least 2)
+            let total_active = world.player_names.keys()
+                .filter(|pid| !world.player_solo.contains(pid))
+                .count();
             let total_ready = world.player_ready.len();
-            if total_named >= 2 && total_ready == total_named {
+            if total_active >= 2 && total_ready == total_active {
                 world.round_state = RoundState::Countdown(3.0);
                 let msg = ServerMessage::CountdownStart { seconds: 3 };
                 let _ = state.broadcast_tx.send(encode(&msg));
@@ -280,6 +282,27 @@ async fn handle_client_message(player_id: u32, msg: ClientMessage, state: &AppSt
             let msg = ServerMessage::ScoreUpdate {
                 player_id,
                 coins,
+            };
+            let _ = state.broadcast_tx.send(encode(&msg));
+        }
+        ClientMessage::EnterSolo => {
+            let mut world = state.world.lock().await;
+            world.player_solo.insert(player_id);
+            world.player_ready.remove(&player_id);
+
+            let lobby_players = build_lobby_players(&world);
+            let msg = ServerMessage::LobbyState {
+                players: lobby_players,
+            };
+            let _ = state.broadcast_tx.send(encode(&msg));
+        }
+        ClientMessage::LeaveSolo => {
+            let mut world = state.world.lock().await;
+            world.player_solo.remove(&player_id);
+
+            let lobby_players = build_lobby_players(&world);
+            let msg = ServerMessage::LobbyState {
+                players: lobby_players,
             };
             let _ = state.broadcast_tx.send(encode(&msg));
         }
