@@ -14,16 +14,16 @@ impl Difficulty {
     /// Returns (table range, exercise timer seconds) for this difficulty.
     pub fn config(&self) -> (RangeInclusive<u32>, f32) {
         match self {
-            Difficulty::Easy => (2..=5, 12.0),
-            Difficulty::Medium => (2..=9, 10.0),
-            Difficulty::Hard => (2..=12, 7.0),
+            Difficulty::Easy => (2..=9, 20.0),
+            Difficulty::Medium => (2..=9, 12.0),
+            Difficulty::Hard => (2..=9, 7.0),
         }
     }
 
     /// Returns the round time limit in seconds.
     pub fn round_time(&self) -> f32 {
         match self {
-            Difficulty::Easy => 180.0,
+            Difficulty::Easy => 240.0,
             Difficulty::Medium => 150.0,
             Difficulty::Hard => 120.0,
         }
@@ -39,9 +39,9 @@ impl Difficulty {
 
     pub fn description(&self) -> &'static str {
         match self {
-            Difficulty::Easy => "Tables 2-5, 3 min round",
-            Difficulty::Medium => "Tables 2-9, 2.5 min round",
-            Difficulty::Hard => "Tables 2-12, 2 min round",
+            Difficulty::Easy => "Tables 2-9, 4 min, 20s per question",
+            Difficulty::Medium => "Tables 2-9, 2.5 min, 12s per question",
+            Difficulty::Hard => "Tables 2-9, 2 min, 7s per question",
         }
     }
 }

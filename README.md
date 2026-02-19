@@ -52,9 +52,24 @@ cd client && trunk serve
 
 The GitHub Pages version runs in single-player mode. For multiplayer, you need to deploy the game server. It serves both the WASM client and the WebSocket endpoint.
 
-### Deploying with Helm
+### Running with Docker
 
-A Helm chart is provided in `charts/tafels-helm/` for deploying to Kubernetes.
+Each release publishes a Docker image to `ghcr.io/kervel/tafels-server`. The image includes the WASM client and serves everything on port 3000.
+
+```bash
+docker run -p 3000:3000 ghcr.io/kervel/tafels-server:v0.1.7
+```
+
+Then open `http://localhost:3000` in your browser. Environment variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `BIND_ADDR` | `0.0.0.0:3000` | Address and port to listen on |
+| `STATIC_DIR` | `/app/dist` | Path to the WASM client files |
+
+### Deploying with Helm (Kubernetes)
+
+A Helm chart is provided for deploying to Kubernetes.
 
 ```bash
 helm install tafels oci://ghcr.io/kervel/charts/tafels-helm \
