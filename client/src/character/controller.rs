@@ -51,7 +51,9 @@ pub fn read_movement_input(
         }
 
         input.direction = if dir.length_squared() > 0.0 {
-            dir.normalize()
+            let n = dir.normalize();
+            // Reduce lateral speed for easier aiming (same ratio as joystick)
+            Vec2::new(n.x * 0.4, n.y)
         } else {
             Vec2::ZERO
         };
