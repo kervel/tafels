@@ -61,11 +61,12 @@ fn update_lobby_notification(
         return;
     }
 
-    // Count players waiting in lobby (not solo, not ready)
+    // Count other players waiting in lobby (not solo, not ready, not self)
+    let my_id = connection_status.my_player_id();
     let waiting = round_buf
         .lobby_states
         .iter()
-        .filter(|p| !p.playing_solo && !p.ready)
+        .filter(|p| !p.playing_solo && !p.ready && Some(p.player_id) != my_id)
         .count() as u32;
 
     // Reset dismissed flag if count changed

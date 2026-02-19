@@ -537,10 +537,12 @@ fn handle_lobby_input(
             session.correct_count = 0;
             session.wrong_count = 0;
             session.timeout_count = 0;
-            session.coins = 0;
-            session.prev_coins = 0;
+            session.coins = 10;
+            session.prev_coins = 10;
             session.combo = 0;
             session.max_combo = 0;
+            session.round_time_remaining = session.difficulty.round_time();
+            session.round_time_limit = session.difficulty.round_time();
         }
     }
 }
