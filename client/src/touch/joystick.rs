@@ -42,7 +42,7 @@ impl Default for JoystickState {
             touch_id: None,
             origin: Vec2::ZERO,
             current: Vec2::ZERO,
-            max_radius: 120.0,
+            max_radius: 180.0,
         }
     }
 }
@@ -66,10 +66,10 @@ fn spawn_joystick_ui(mut commands: Commands) {
         JoystickHint,
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Percent(10.0),
-            bottom: Val::Percent(10.0),
-            width: Val::Px(160.0),
-            height: Val::Px(160.0),
+            left: Val::Percent(5.0),
+            bottom: Val::Percent(8.0),
+            width: Val::Px(220.0),
+            height: Val::Px(220.0),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -85,8 +85,8 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Px(0.0),
             top: Val::Px(0.0),
-            width: Val::Px(160.0),
-            height: Val::Px(160.0),
+            width: Val::Px(220.0),
+            height: Val::Px(220.0),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -103,8 +103,8 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Px(0.0),
             top: Val::Px(0.0),
-            width: Val::Px(65.0),
-            height: Val::Px(65.0),
+            width: Val::Px(80.0),
+            height: Val::Px(80.0),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -134,15 +134,25 @@ fn touch_joystick_input(
         return;
     };
     let window_width = window.width();
+    let window_height = window.height();
+
+    // Compute fixed joystick center from the hint circle position
+    // Hint is at left: 5%, bottom: 8%, size 220x220
+    let hint_center = Vec2::new(
+        window_width * 0.05 + 110.0,
+        window_height - (window_height * 0.08 + 110.0),
+    );
+    // Accept touches within a generous radius around the fixed center
+    let activation_radius = 180.0;
 
     for event in touch_events.read() {
         match event.phase {
             TouchPhase::Started => {
-                // Only activate if touch is in left 40% of screen and no joystick active
-                if !joystick.active && event.position.x < window_width * 0.4 {
+                let dist = event.position.distance(hint_center);
+                if !joystick.active && dist < activation_radius {
                     joystick.active = true;
                     joystick.touch_id = Some(event.id);
-                    joystick.origin = event.position;
+                    joystick.origin = hint_center;
                     joystick.current = event.position;
                 }
             }
@@ -163,27 +173,21 @@ fn touch_joystick_input(
 
 fn update_joystick_ui(
     joystick: Res<JoystickState>,
-    windows: Query<&Window>,
     mut hint_query: Query<&mut Visibility, (With<JoystickHint>, Without<JoystickBase>, Without<JoystickThumb>)>,
     mut base_query: Query<(&mut Visibility, &mut Node), (With<JoystickBase>, Without<JoystickHint>, Without<JoystickThumb>)>,
     mut thumb_query: Query<(&mut Visibility, &mut Node), (With<JoystickThumb>, Without<JoystickHint>, Without<JoystickBase>)>,
 ) {
-    let Ok(window) = windows.single() else {
-        return;
-    };
-    let _window_height = window.height();
-
     if joystick.active {
         // Hide hint
         for mut vis in &mut hint_query {
             *vis = Visibility::Hidden;
         }
 
-        // Show and position base at origin
+        // Show and position base at fixed origin
         for (mut vis, mut node) in &mut base_query {
             *vis = Visibility::Inherited;
-            node.left = Val::Px(joystick.origin.x - 80.0);
-            node.top = Val::Px(joystick.origin.y - 80.0);
+            node.left = Val::Px(joystick.origin.x - 110.0);
+            node.top = Val::Px(joystick.origin.y - 110.0);
         }
 
         // Show and position thumb at current (clamped)
@@ -197,8 +201,8 @@ fn update_joystick_ui(
 
         for (mut vis, mut node) in &mut thumb_query {
             *vis = Visibility::Inherited;
-            node.left = Val::Px(clamped.x - 32.5);
-            node.top = Val::Px(clamped.y - 32.5);
+            node.left = Val::Px(clamped.x - 40.0);
+            node.top = Val::Px(clamped.y - 40.0);
         }
     } else {
         // Show hint, hide base + thumb

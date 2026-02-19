@@ -35,7 +35,8 @@ pub fn read_movement_input(
                     Vec2::ZERO
                 };
                 // Touch coords: X right, Y down. Movement: X right, Y forward.
-                input.direction = Vec2::new(curved.x, -curved.y);
+                // Reduce lateral (turning) speed to 40% — forward feels right
+                input.direction = Vec2::new(curved.x * 0.4, -curved.y);
                 controller.running = false;
             }
             continue;
