@@ -36,7 +36,7 @@ pub fn read_movement_input(
                 };
                 // Touch coords: X right, Y down. Movement: X right, Y forward.
                 input.direction = Vec2::new(curved.x, -curved.y);
-                controller.running = dist / joystick.max_radius >= 0.9;
+                controller.running = false;
             }
             continue;
         }
@@ -82,7 +82,10 @@ pub fn apply_movement(
             let forward = Vec3::new(-camera_yaw.sin(), 0.0, -camera_yaw.cos());
             let right = Vec3::new(camera_yaw.cos(), 0.0, -camera_yaw.sin());
 
-            let movement = (forward * input.direction.y + right * input.direction.x).normalize()
+            let raw = forward * input.direction.y + right * input.direction.x;
+            let magnitude = raw.length().min(1.0);
+            let movement = raw.normalize()
+                * magnitude
                 * controller.effective_speed()
                 * time.delta_secs();
 

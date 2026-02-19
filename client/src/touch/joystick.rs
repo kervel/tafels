@@ -42,7 +42,7 @@ impl Default for JoystickState {
             touch_id: None,
             origin: Vec2::ZERO,
             current: Vec2::ZERO,
-            max_radius: 80.0,
+            max_radius: 120.0,
         }
     }
 }
@@ -68,8 +68,8 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Percent(10.0),
             bottom: Val::Percent(10.0),
-            width: Val::Px(120.0),
-            height: Val::Px(120.0),
+            width: Val::Px(160.0),
+            height: Val::Px(160.0),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -85,8 +85,8 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Px(0.0),
             top: Val::Px(0.0),
-            width: Val::Px(120.0),
-            height: Val::Px(120.0),
+            width: Val::Px(160.0),
+            height: Val::Px(160.0),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -103,8 +103,8 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Px(0.0),
             top: Val::Px(0.0),
-            width: Val::Px(50.0),
-            height: Val::Px(50.0),
+            width: Val::Px(65.0),
+            height: Val::Px(65.0),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -182,8 +182,8 @@ fn update_joystick_ui(
         // Show and position base at origin
         for (mut vis, mut node) in &mut base_query {
             *vis = Visibility::Inherited;
-            node.left = Val::Px(joystick.origin.x - 60.0);
-            node.top = Val::Px(joystick.origin.y - 60.0);
+            node.left = Val::Px(joystick.origin.x - 80.0);
+            node.top = Val::Px(joystick.origin.y - 80.0);
         }
 
         // Show and position thumb at current (clamped)
@@ -197,8 +197,8 @@ fn update_joystick_ui(
 
         for (mut vis, mut node) in &mut thumb_query {
             *vis = Visibility::Inherited;
-            node.left = Val::Px(clamped.x - 25.0);
-            node.top = Val::Px(clamped.y - 25.0);
+            node.left = Val::Px(clamped.x - 32.5);
+            node.top = Val::Px(clamped.y - 32.5);
         }
     } else {
         // Show hint, hide base + thumb
