@@ -57,7 +57,7 @@ The GitHub Pages version runs in single-player mode. For multiplayer, you need t
 Each release publishes a Docker image to `ghcr.io/kervel/tafels-server`. The image includes the WASM client and serves everything on port 3000.
 
 ```bash
-docker run -p 3000:3000 ghcr.io/kervel/tafels-server:v0.1.7
+docker run -p 3000:3000 ghcr.io/kervel/tafels-server:latest
 ```
 
 Then open `http://localhost:3000` in your browser. Environment variables:
