@@ -60,7 +60,7 @@ struct JoystickThumb;
 struct JoystickRoot;
 
 fn spawn_joystick_ui(mut commands: Commands) {
-    // Hint circle (always visible, very faint)
+    // Hint circle — small visual indicator, border only (no fill to avoid GPU issues)
     commands.spawn((
         JoystickRoot,
         JoystickHint,
@@ -68,16 +68,18 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Percent(3.0),
             bottom: Val::Percent(5.0),
-            width: Val::Px(500.0),
-            height: Val::Px(500.0),
+            width: Val::Px(200.0),
+            height: Val::Px(200.0),
+            border: UiRect::all(Val::Px(3.0)),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
-        BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.08)),
+        BackgroundColor(Color::NONE),
+        BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.15)),
         GlobalZIndex(50),
     ));
 
-    // Base circle (hidden until touch)
+    // Base circle (hidden until touch) — small visual, activation area is handled by input code
     commands.spawn((
         JoystickRoot,
         JoystickBase,
@@ -85,12 +87,14 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Px(0.0),
             top: Val::Px(0.0),
-            width: Val::Px(500.0),
-            height: Val::Px(500.0),
+            width: Val::Px(200.0),
+            height: Val::Px(200.0),
+            border: UiRect::all(Val::Px(2.0)),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
-        BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.25)),
+        BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.08)),
+        BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.2)),
         Visibility::Hidden,
         GlobalZIndex(51),
     ));
@@ -137,10 +141,10 @@ fn touch_joystick_input(
     let window_height = window.height();
 
     // Compute fixed joystick center from the hint circle position
-    // Hint is at left: 3%, bottom: 5%, size 500x500
+    // Hint visual is at left: 3%, bottom: 5%, size 200x200
     let hint_center = Vec2::new(
-        window_width * 0.03 + 250.0,
-        window_height - (window_height * 0.05 + 250.0),
+        window_width * 0.03 + 100.0,
+        window_height - (window_height * 0.05 + 100.0),
     );
     // Accept touches within the joystick area
     let activation_radius = 450.0;
@@ -183,11 +187,11 @@ fn update_joystick_ui(
             *vis = Visibility::Hidden;
         }
 
-        // Show and position base at fixed origin
+        // Show and position base at fixed origin (visual is 200px, centered)
         for (mut vis, mut node) in &mut base_query {
             *vis = Visibility::Inherited;
-            node.left = Val::Px(joystick.origin.x - 250.0);
-            node.top = Val::Px(joystick.origin.y - 250.0);
+            node.left = Val::Px(joystick.origin.x - 100.0);
+            node.top = Val::Px(joystick.origin.y - 100.0);
         }
 
         // Show and position thumb at current (clamped)
