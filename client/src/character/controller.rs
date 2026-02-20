@@ -24,9 +24,9 @@ pub fn read_movement_input(
                 // Normalize each axis independently for per-axis power curves
                 let nx = (delta.x / joystick.max_radius).clamp(-1.0, 1.0);
                 let ny = (delta.y / joystick.max_radius).clamp(-1.0, 1.0);
-                // Steeper curve on X (2.5) for fine lateral aiming control
+                // Slightly reduced curve on X (2.2) for a bit more turning leverage
                 // Gentler curve on Y (1.5) for forward/back
-                let cx = nx.abs().powf(2.5) * nx.signum() * 0.4;
+                let cx = nx.abs().powf(2.2) * nx.signum() * 0.45;
                 let cy = ny.abs().powf(1.5) * ny.signum() * 1.6;
                 // Touch coords: X right, Y down. Movement: X right, Y forward.
                 input.direction = Vec2::new(cx, -cy);

@@ -42,7 +42,7 @@ impl Default for JoystickState {
             touch_id: None,
             origin: Vec2::ZERO,
             current: Vec2::ZERO,
-            max_radius: 450.0,
+            max_radius: 500.0,
         }
     }
 }
@@ -66,7 +66,7 @@ fn spawn_joystick_ui(mut commands: Commands) {
         JoystickHint,
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Percent(3.0),
+            left: Val::Percent(8.0),
             bottom: Val::Percent(5.0),
             width: Val::Px(200.0),
             height: Val::Px(200.0),
@@ -141,9 +141,9 @@ fn touch_joystick_input(
     let window_height = window.height();
 
     // Compute fixed joystick center from the hint circle position
-    // Hint visual is at left: 3%, bottom: 5%, size 200x200
+    // Hint visual is at left: 8%, bottom: 5%, size 200x200
     let hint_center = Vec2::new(
-        window_width * 0.03 + 100.0,
+        window_width * 0.08 + 100.0,
         window_height - (window_height * 0.05 + 100.0),
     );
     // Accept touches within the joystick area
