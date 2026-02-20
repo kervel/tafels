@@ -30,6 +30,8 @@ struct ShootButtonMarker;
 struct ShootButtonRoot;
 
 fn spawn_shoot_button(mut commands: Commands) {
+    // Outer container: same size and position as joystick hint (200x200, bottom 5%)
+    // so their centers align. The container is invisible — visual is the inner circle.
     commands
         .spawn((
             ShootButtonRoot,
@@ -37,30 +39,44 @@ fn spawn_shoot_button(mut commands: Commands) {
             Button,
             Node {
                 position_type: PositionType::Absolute,
-                right: Val::Percent(8.0),
-                bottom: Val::Percent(12.0),
-                width: Val::Px(140.0),
-                height: Val::Px(140.0),
+                right: Val::Percent(3.0),
+                bottom: Val::Percent(5.0),
+                width: Val::Px(200.0),
+                height: Val::Px(200.0),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                border_radius: BorderRadius::all(Val::Percent(50.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.9, 0.15, 0.15, 0.45)),
-            BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.5)),
+            BackgroundColor(Color::NONE),
             GlobalZIndex(50),
         ))
         .with_children(|btn| {
-            // Inner circle to look like a ball
+            // Visible button circle
             btn.spawn((
                 Node {
-                    width: Val::Px(60.0),
-                    height: Val::Px(60.0),
+                    width: Val::Px(140.0),
+                    height: Val::Px(140.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border: UiRect::all(Val::Px(3.0)),
                     border_radius: BorderRadius::all(Val::Percent(50.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgba(1.0, 0.3, 0.3, 0.8)),
-            ));
+                BackgroundColor(Color::srgb(0.4, 0.08, 0.08)),
+                BorderColor::all(Color::srgb(0.8, 0.3, 0.3)),
+            ))
+            .with_children(|circle| {
+                // Inner ball
+                circle.spawn((
+                    Node {
+                        width: Val::Px(60.0),
+                        height: Val::Px(60.0),
+                        border_radius: BorderRadius::all(Val::Percent(50.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.9, 0.25, 0.25)),
+                ));
+            });
         });
 }
 
