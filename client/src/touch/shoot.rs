@@ -51,7 +51,7 @@ fn spawn_shoot_button(mut commands: Commands) {
             GlobalZIndex(50),
         ))
         .with_children(|btn| {
-            // Visible button circle
+            // Visible ring — border only, no fill (filled border_radius kills mobile GPUs)
             btn.spawn((
                 Node {
                     width: Val::Px(140.0),
@@ -62,15 +62,15 @@ fn spawn_shoot_button(mut commands: Commands) {
                     border_radius: BorderRadius::all(Val::Percent(50.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.4, 0.08, 0.08)),
-                BorderColor::all(Color::srgb(0.8, 0.3, 0.3)),
+                BackgroundColor(Color::NONE),
+                BorderColor::all(Color::srgb(0.9, 0.3, 0.3)),
             ))
             .with_children(|circle| {
-                // Inner ball
+                // Small opaque inner ball (kept small to avoid GPU issue)
                 circle.spawn((
                     Node {
-                        width: Val::Px(60.0),
-                        height: Val::Px(60.0),
+                        width: Val::Px(50.0),
+                        height: Val::Px(50.0),
                         border_radius: BorderRadius::all(Val::Percent(50.0)),
                         ..default()
                     },
