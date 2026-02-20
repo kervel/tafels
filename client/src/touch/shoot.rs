@@ -39,8 +39,8 @@ fn spawn_shoot_button(mut commands: Commands) {
                 position_type: PositionType::Absolute,
                 right: Val::Percent(8.0),
                 bottom: Val::Percent(12.0),
-                width: Val::Px(70.0),
-                height: Val::Px(70.0),
+                width: Val::Px(140.0),
+                height: Val::Px(140.0),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 border_radius: BorderRadius::all(Val::Percent(50.0)),
@@ -54,8 +54,8 @@ fn spawn_shoot_button(mut commands: Commands) {
             // Inner circle to look like a ball
             btn.spawn((
                 Node {
-                    width: Val::Px(30.0),
-                    height: Val::Px(30.0),
+                    width: Val::Px(60.0),
+                    height: Val::Px(60.0),
                     border_radius: BorderRadius::all(Val::Percent(50.0)),
                     ..default()
                 },
