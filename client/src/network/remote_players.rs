@@ -6,6 +6,7 @@ use tafels_shared::protocol::AnimationState;
 
 use super::{ConnectionStatus, RemotePlayerJoined, RemotePlayerLeft, RemotePlayerUpdated};
 use crate::character::CharacterMarker;
+use crate::hud::GameFont;
 use crate::collision::VegetationCollider;
 use crate::game::GameState;
 
@@ -82,6 +83,7 @@ fn spawn_remote_players(
     mut events: MessageReader<RemotePlayerJoined>,
     asset_server: Res<AssetServer>,
     existing: Query<&RemotePlayer>,
+    game_font: Res<GameFont>,
 ) {
     for RemotePlayerJoined(ps) in events.read() {
         info!(
@@ -126,6 +128,7 @@ fn spawn_remote_players(
                     RemotePlayerNameplate,
                     Text2d::new(format!("Player {}", ps.player_id)),
                     TextFont {
+                        font: game_font.0.clone(),
                         font_size: 24.0,
                         ..default()
                     },

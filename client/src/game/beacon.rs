@@ -124,7 +124,7 @@ fn spawn_beacon(
 
     // Try to find a valid spawn position
     let mut spawn_pos = None;
-    for _ in 0..20 {
+    for _ in 0..40 {
         let angle = rng.r#gen_range(0.0..std::f32::consts::TAU);
         let dist = rng.r#gen_range(30.0..60.0_f32);
         let candidate = Vec3::new(
@@ -189,8 +189,8 @@ fn spawn_beacon(
 
     let exercise = generate_exercise(&session.difficulty);
 
-    // Random world-lifetime between 30-60 seconds
-    let lifetime = rng.r#gen_range(30.0..60.0_f32);
+    // Random world-lifetime between 45-90 seconds (longer so beacons stick around)
+    let lifetime = rng.r#gen_range(45.0..90.0_f32);
 
     // Random beacon color
     let color_idx = rng.r#gen_range(0..NEON_COLORS.len());

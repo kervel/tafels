@@ -552,26 +552,32 @@ fn handle_round_events(
     }
 
     if let Some(secs) = round_buf.countdown.take() {
-        *round_state = MultiplayerRoundState::Countdown(secs as f32);
+        if !status.is_solo() {
+            *round_state = MultiplayerRoundState::Countdown(secs as f32);
+        }
     }
 
     if let Some(_round_time) = round_buf.round_start.take() {
-        *round_state = MultiplayerRoundState::Playing;
-        // Force send initial score so other players see our starting coins
-        session.prev_coins = i32::MIN;
+        if !status.is_solo() {
+            *round_state = MultiplayerRoundState::Playing;
+            // Force send initial score so other players see our starting coins
+            session.prev_coins = i32::MIN;
+        }
     }
 
     if let Some(scores) = round_buf.round_over.take() {
-        *round_state = MultiplayerRoundState::RoundOver;
-        leaderboard.entries = scores
-            .iter()
-            .map(|s| LeaderboardEntry {
-                player_id: s.player_id,
-                name: s.name.clone(),
-                coins: s.coins,
-            })
-            .collect();
-        leaderboard.entries.sort_by(|a, b| b.coins.cmp(&a.coins));
+        if !status.is_solo() {
+            *round_state = MultiplayerRoundState::RoundOver;
+            leaderboard.entries = scores
+                .iter()
+                .map(|s| LeaderboardEntry {
+                    player_id: s.player_id,
+                    name: s.name.clone(),
+                    coins: s.coins,
+                })
+                .collect();
+            leaderboard.entries.sort_by(|a, b| b.coins.cmp(&a.coins));
+        }
     }
 
     // Update leaderboard from score updates

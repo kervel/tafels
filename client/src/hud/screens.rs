@@ -5,6 +5,7 @@ use crate::game::{ActiveExercises, GameSession, GameState, Leaderboard, Multipla
 use crate::network::{ConnectionStatus, RoundMessageBuffer, WsConnection};
 use crate::touch::TouchDevice;
 use crate::touch::keyboard::SoftKeyboardInput;
+use super::GameFont;
 use tafels_shared::protocol::{ClientMessage, encode};
 
 pub struct ScreensPlugin;
@@ -81,7 +82,8 @@ struct RoundOverScreen;
 #[derive(Component)]
 struct PlaySoloButton;
 
-fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
+fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_font: Res<GameFont>) {
+    let font = game_font.0.clone();
     commands
         .spawn((
             MenuScreen,
@@ -100,6 +102,7 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
             parent.spawn((
                 Text::new("Math Tables Game"),
                 TextFont {
+                    font: font.clone(),
                     font_size: 52.0,
                     ..default()
                 },
@@ -114,6 +117,7 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
             parent.spawn((
                 Text::new("Enter your name:"),
                 TextFont {
+                    font: font.clone(),
                     font_size: 22.0,
                     ..default()
                 },
@@ -135,22 +139,30 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
                 Button,
                 Text::new(display_name),
                 TextFont {
-                    font_size: 28.0,
+                    font: font.clone(),
+                    font_size: 32.0,
                     ..default()
                 },
-                TextColor(Color::srgb(1.0, 1.0, 1.0)),
+                TextColor(Color::srgb(0.3, 1.0, 0.5)),
                 Node {
-                    margin: UiRect::bottom(Val::Px(24.0)),
-                    padding: UiRect::axes(Val::Px(16.0), Val::Px(8.0)),
+                    width: Val::Px(360.0),
+                    margin: UiRect::bottom(Val::Px(30.0)),
+                    padding: UiRect::axes(Val::Px(24.0), Val::Px(16.0)),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border: UiRect::all(Val::Px(2.0)),
+                    border_radius: BorderRadius::all(Val::Px(8.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgba(0.15, 0.15, 0.15, 0.8)),
+                BackgroundColor(Color::srgba(0.05, 0.08, 0.12, 0.85)),
+                BorderColor::all(Color::srgba(0.3, 1.0, 0.5, 0.5)),
             ));
 
             // Subtitle
             parent.spawn((
                 Text::new("Choose Difficulty"),
                 TextFont {
+                    font: font.clone(),
                     font_size: 28.0,
                     ..default()
                 },
@@ -167,6 +179,7 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
                 (Difficulty::Medium, Color::srgb(0.9, 0.7, 0.1)),
                 (Difficulty::Hard, Color::srgb(0.9, 0.2, 0.2)),
             ] {
+                let font = font.clone();
                 parent
                     .spawn((
                         DifficultyButton(diff),
@@ -175,7 +188,7 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
                             width: Val::Px(320.0),
                             height: Val::Auto,
                             padding: UiRect::axes(Val::Px(20.0), Val::Px(14.0)),
-                            margin: UiRect::all(Val::Px(8.0)),
+                            margin: UiRect::axes(Val::Px(8.0), Val::Px(12.0)),
                             flex_direction: FlexDirection::Column,
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
@@ -190,6 +203,7 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
                         btn.spawn((
                             Text::new(diff.label()),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 26.0,
                                 ..default()
                             },
@@ -199,6 +213,7 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>) {
                         btn.spawn((
                             Text::new(diff.description()),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 16.0,
                                 ..default()
                             },
@@ -343,17 +358,19 @@ fn manage_lobby_screen(
     existing: Query<Entity, With<LobbyScreen>>,
     round_buf: Res<RoundMessageBuffer>,
     player_list: Query<Entity, With<LobbyPlayerList>>,
+    game_font: Res<GameFont>,
 ) {
     let should_show = matches!(*round_state, MultiplayerRoundState::Lobby);
 
     if should_show {
         // Spawn lobby screen if it doesn't exist
         if existing.is_empty() {
-            spawn_lobby_screen(&mut commands);
+            spawn_lobby_screen(&mut commands, &game_font.0);
         }
 
         // Update player list when lobby state changes (always refresh from buffer)
         if !round_buf.lobby_states.is_empty() {
+            let font = game_font.0.clone();
             // Remove old entries
             for entity in &player_list {
                 commands.entity(entity).despawn();
@@ -381,6 +398,7 @@ fn manage_lobby_screen(
                             LobbyPlayerList,
                             Text::new(format!("{} {}", p.name, status)),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 22.0,
                                 ..default()
                             },
@@ -402,7 +420,8 @@ fn manage_lobby_screen(
     }
 }
 
-fn spawn_lobby_screen(commands: &mut Commands) {
+fn spawn_lobby_screen(commands: &mut Commands, font: &Handle<Font>) {
+    let font = font.clone();
     commands
         .spawn((
             LobbyScreen,
@@ -422,6 +441,7 @@ fn spawn_lobby_screen(commands: &mut Commands) {
             parent.spawn((
                 Text::new("Lobby - Waiting for players"),
                 TextFont {
+                    font: font.clone(),
                     font_size: 36.0,
                     ..default()
                 },
@@ -439,7 +459,7 @@ fn spawn_lobby_screen(commands: &mut Commands) {
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     column_gap: Val::Px(16.0),
-                    margin: UiRect::top(Val::Px(20.0)),
+                    margin: UiRect::axes(Val::ZERO, Val::Px(20.0)),
                     ..default()
                 })
                 .with_children(|row| {
@@ -462,6 +482,7 @@ fn spawn_lobby_screen(commands: &mut Commands) {
                         btn.spawn((
                             Text::new("Ready!"),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 24.0,
                                 ..default()
                             },
@@ -488,6 +509,7 @@ fn spawn_lobby_screen(commands: &mut Commands) {
                         btn.spawn((
                             Text::new("Play Solo"),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 24.0,
                                 ..default()
                             },
@@ -554,11 +576,13 @@ fn manage_countdown_overlay(
     round_state: Res<MultiplayerRoundState>,
     existing: Query<Entity, With<CountdownOverlay>>,
     mut text_query: Query<&mut Text, With<CountdownText>>,
+    game_font: Res<GameFont>,
 ) {
     match *round_state {
         MultiplayerRoundState::Countdown(remaining) => {
             let display = remaining.ceil() as u8;
             if existing.is_empty() {
+                let font = game_font.0.clone();
                 commands
                     .spawn((
                         CountdownOverlay,
@@ -578,6 +602,7 @@ fn manage_countdown_overlay(
                             CountdownText,
                             Text::new(format!("{}", display)),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 120.0,
                                 ..default()
                             },
@@ -617,10 +642,12 @@ fn manage_round_over_screen(
     round_state: Res<MultiplayerRoundState>,
     existing: Query<Entity, With<RoundOverScreen>>,
     leaderboard: Res<Leaderboard>,
+    game_font: Res<GameFont>,
 ) {
     let should_show = matches!(*round_state, MultiplayerRoundState::RoundOver);
 
     if should_show && existing.is_empty() {
+        let font = game_font.0.clone();
         commands
             .spawn((
                 RoundOverScreen,
@@ -640,6 +667,7 @@ fn manage_round_over_screen(
                 parent.spawn((
                     Text::new("Round Over!"),
                     TextFont {
+                        font: font.clone(),
                         font_size: 48.0,
                         ..default()
                     },
@@ -653,6 +681,7 @@ fn manage_round_over_screen(
                 parent.spawn((
                     Text::new("Final Standings"),
                     TextFont {
+                        font: font.clone(),
                         font_size: 28.0,
                         ..default()
                     },
@@ -687,6 +716,7 @@ fn manage_round_over_screen(
                     parent.spawn((
                         Text::new(label),
                         TextFont {
+                            font: font.clone(),
                             font_size: 24.0,
                             ..default()
                         },
@@ -701,6 +731,7 @@ fn manage_round_over_screen(
                 parent.spawn((
                     Text::new("Next round starting soon..."),
                     TextFont {
+                        font: font.clone(),
                         font_size: 18.0,
                         ..default()
                     },
@@ -720,7 +751,7 @@ fn manage_round_over_screen(
 
 // --- Game Over Screen (single-player) ---
 
-fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, connection_status: Res<ConnectionStatus>) {
+fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, connection_status: Res<ConnectionStatus>, game_font: Res<GameFont>) {
     let total = session.correct_count + session.wrong_count + session.timeout_count;
     let accuracy = if total > 0 {
         (session.correct_count as f32 / total as f32 * 100.0) as u32
@@ -735,6 +766,7 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, con
         "Game Over"
     };
 
+    let font = game_font.0.clone();
     commands
         .spawn((
             GameOverScreen,
@@ -753,6 +785,7 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, con
             parent.spawn((
                 Text::new(title),
                 TextFont {
+                    font: font.clone(),
                     font_size: 48.0,
                     ..default()
                 },
@@ -781,6 +814,7 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, con
             parent.spawn((
                 Text::new(stats),
                 TextFont {
+                    font: font.clone(),
                     font_size: 24.0,
                     ..default()
                 },
@@ -817,6 +851,7 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, con
                     btn.spawn((
                         Text::new(button_text),
                         TextFont {
+                            font: font.clone(),
                             font_size: 24.0,
                             ..default()
                         },

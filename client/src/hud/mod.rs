@@ -10,10 +10,17 @@ use crate::game::Leaderboard;
 use crate::game::MultiplayerRoundState;
 use crate::network::ConnectionStatus;
 
+#[derive(Resource, Clone)]
+pub struct GameFont(pub Handle<Font>);
+
 pub struct HudPlugin;
 
 impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
+        // Load font eagerly so the resource is available before any state systems run
+        let font: Handle<Font> = app.world_mut().resource_mut::<AssetServer>().load("fonts/BubblegumSans-Regular.ttf");
+        app.insert_resource(GameFont(font));
+
         app.add_systems(OnEnter(GameState::Playing), spawn_hud)
             .add_systems(OnExit(GameState::Playing), despawn_hud)
             .add_systems(
@@ -67,7 +74,7 @@ struct LeaderboardPanel;
 #[derive(Component)]
 struct LeaderboardEntryText;
 
-fn spawn_hud(mut commands: Commands) {
+fn spawn_hud(mut commands: Commands, game_font: Res<GameFont>) {
     commands
         .spawn((
             HudRoot,
@@ -99,6 +106,7 @@ fn spawn_hud(mut commands: Commands) {
                         CoinDisplay,
                         Text::new("Coins: 10"),
                         TextFont {
+                            font: game_font.0.clone(),
                             font_size: 28.0,
                             ..default()
                         },
@@ -110,6 +118,7 @@ fn spawn_hud(mut commands: Commands) {
                         RoundTimerText,
                         Text::new("3:00"),
                         TextFont {
+                            font: game_font.0.clone(),
                             font_size: 26.0,
                             ..default()
                         },
@@ -130,6 +139,7 @@ fn spawn_hud(mut commands: Commands) {
                                 ComboDisplay,
                                 Text::new(""),
                                 TextFont {
+                                    font: game_font.0.clone(),
                                     font_size: 26.0,
                                     ..default()
                                 },
@@ -141,6 +151,7 @@ fn spawn_hud(mut commands: Commands) {
                                 ProgressDisplay,
                                 Text::new("0 / 20"),
                                 TextFont {
+                                    font: game_font.0.clone(),
                                     font_size: 22.0,
                                     ..default()
                                 },
@@ -154,6 +165,7 @@ fn spawn_hud(mut commands: Commands) {
                 ConnectionIndicator,
                 Text::new("Offline"),
                 TextFont {
+                    font: game_font.0.clone(),
                     font_size: 16.0,
                     ..default()
                 },
@@ -216,6 +228,7 @@ fn spawn_hud(mut commands: Commands) {
                     lb.spawn((
                         Text::new("Leaderboard"),
                         TextFont {
+                            font: game_font.0.clone(),
                             font_size: 18.0,
                             ..default()
                         },
@@ -341,6 +354,7 @@ fn show_answer_feedback(
     mut commands: Commands,
     feedback: Option<Res<AnswerFeedback>>,
     existing: Query<Entity, With<FeedbackPopup>>,
+    game_font: Res<GameFont>,
 ) {
     let Some(fb) = feedback else {
         return;
@@ -377,6 +391,7 @@ fn show_answer_feedback(
         FeedbackPopup { timer: 1.5 },
         Text::new(msg),
         TextFont {
+            font: game_font.0.clone(),
             font_size: 42.0,
             ..default()
         },
@@ -422,6 +437,7 @@ fn update_leaderboard(
     status: Res<ConnectionStatus>,
     mut panel_query: Query<(Entity, &mut Visibility), With<LeaderboardPanel>>,
     entry_query: Query<Entity, With<LeaderboardEntryText>>,
+    game_font: Res<GameFont>,
 ) {
     let is_multiplayer = status.is_online()
         && matches!(
@@ -463,6 +479,7 @@ fn update_leaderboard(
                     LeaderboardEntryText,
                     Text::new(label),
                     TextFont {
+                        font: game_font.0.clone(),
                         font_size: 15.0,
                         ..default()
                     },

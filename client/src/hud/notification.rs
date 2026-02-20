@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::game::{ActiveExercises, GameSession, GameState, MultiplayerRoundState};
 use crate::network::{ConnectionStatus, RoundMessageBuffer, WsConnection};
+use super::GameFont;
 use tafels_shared::protocol::{ClientMessage, encode};
 
 pub struct NotificationPlugin;
@@ -83,6 +84,7 @@ fn render_lobby_notification(
     notification: Res<LobbyNotification>,
     existing: Query<Entity, With<NotificationBanner>>,
     mut text_query: Query<&mut Text, With<NotificationText>>,
+    game_font: Res<GameFont>,
 ) {
     let should_show = notification.waiting_count > 0 && !notification.dismissed;
 
@@ -94,6 +96,7 @@ fn render_lobby_notification(
         };
 
         if existing.is_empty() {
+            let font = game_font.0.clone();
             // Spawn notification banner
             commands
                 .spawn((
@@ -121,6 +124,7 @@ fn render_lobby_notification(
                         NotificationText,
                         Text::new(label),
                         TextFont {
+                            font: font.clone(),
                             font_size: 20.0,
                             ..default()
                         },
@@ -151,6 +155,7 @@ fn render_lobby_notification(
                                 btn.spawn((
                                     Text::new("Join"),
                                     TextFont {
+                                        font: font.clone(),
                                         font_size: 18.0,
                                         ..default()
                                     },
@@ -174,6 +179,7 @@ fn render_lobby_notification(
                                 btn.spawn((
                                     Text::new("Dismiss"),
                                     TextFont {
+                                        font: font.clone(),
                                         font_size: 18.0,
                                         ..default()
                                     },
