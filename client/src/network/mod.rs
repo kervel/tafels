@@ -557,9 +557,12 @@ fn handle_round_events(
         }
     }
 
-    if let Some(_round_time) = round_buf.round_start.take() {
+    if let Some(round_time) = round_buf.round_start.take() {
         if !status.is_solo() {
             *round_state = MultiplayerRoundState::Playing;
+            // Sync the display timer from the server's authoritative round time
+            session.round_time_remaining = round_time;
+            session.round_time_limit = round_time;
             // Force send initial score so other players see our starting coins
             session.prev_coins = i32::MIN;
         }

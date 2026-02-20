@@ -8,6 +8,7 @@ mod hud;
 mod lighting;
 mod network;
 mod projectile;
+mod quality;
 mod terrain;
 mod vegetation;
 
@@ -30,6 +31,7 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(quality::QualityPlugin)
         .add_plugins(terrain::TerrainPlugin)
         .add_plugins(lighting::LightingPlugin)
         .add_plugins(character::CharacterPlugin)

@@ -176,7 +176,14 @@ fn spawn_grass(
 }
 
 /// Sway all WindSway entities (grass + trees) with a rolling wave pattern.
-pub fn animate_wind(time: Res<Time>, mut query: Query<(&mut Transform, &WindSway, &Visibility)>) {
+pub fn animate_wind(
+    time: Res<Time>,
+    mut query: Query<(&mut Transform, &WindSway, &Visibility)>,
+    quality: Res<crate::quality::QualitySettings>,
+) {
+    if quality.level == crate::quality::QualityLevel::Low {
+        return;
+    }
     let t = time.elapsed_secs();
 
     for (mut transform, sway, vis) in &mut query {
@@ -206,7 +213,16 @@ fn cull_grass(
         (&Transform, &mut Visibility),
         (With<GrassTuft>, Without<CharacterMarker>),
     >,
+    quality: Res<crate::quality::QualitySettings>,
 ) {
+    // In low quality mode, hide all grass unconditionally.
+    if quality.level == crate::quality::QualityLevel::Low {
+        for (_, mut vis) in &mut grass_query {
+            *vis = Visibility::Hidden;
+        }
+        return;
+    }
+
     let Some(char_tf) = character_query.iter().next() else {
         return;
     };

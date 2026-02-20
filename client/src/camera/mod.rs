@@ -18,6 +18,7 @@ impl Plugin for CameraPlugin {
                     orbit::camera_mouse_input,
                     orbit::camera_scroll_zoom,
                     orbit::camera_follow,
+                    adapt_bloom_quality,
                 )
                     .chain(),
             )
@@ -25,6 +26,21 @@ impl Plugin for CameraPlugin {
                 OnEnter(crate::game::GameState::Playing),
                 orbit::reset_camera_on_play,
             );
+    }
+}
+
+fn adapt_bloom_quality(
+    quality: Res<crate::quality::QualitySettings>,
+    mut bloom_query: Query<&mut Bloom>,
+) {
+    if !quality.is_changed() {
+        return;
+    }
+    for mut bloom in &mut bloom_query {
+        bloom.intensity = match quality.level {
+            crate::quality::QualityLevel::High => 0.5,
+            crate::quality::QualityLevel::Low => 0.0,
+        };
     }
 }
 

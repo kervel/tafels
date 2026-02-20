@@ -135,10 +135,15 @@ fn tick_round_timer(
     time: Res<Time>,
     mut session: ResMut<GameSession>,
     mut next_state: ResMut<NextState<super::GameState>>,
+    round_state: Res<super::MultiplayerRoundState>,
 ) {
     session.round_time_remaining -= time.delta_secs();
     if session.round_time_remaining <= 0.0 {
         session.round_time_remaining = 0.0;
-        next_state.set(super::GameState::GameOver);
+        // In multiplayer, only the server's RoundOver message ends the round.
+        // The local timer is display-only.
+        if matches!(*round_state, super::MultiplayerRoundState::None) {
+            next_state.set(super::GameState::GameOver);
+        }
     }
 }

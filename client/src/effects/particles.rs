@@ -2,8 +2,10 @@ use bevy::prelude::*;
 use rand::prelude::*;
 
 use crate::projectile::Projectile;
+use crate::quality::{QualityLevel, QualitySettings};
 
-const MAX_PARTICLES: usize = 500;
+const MAX_PARTICLES_HIGH: usize = 500;
+const MAX_PARTICLES_LOW: usize = 150;
 
 /// A temporary point light that fades out and despawns.
 #[derive(Component)]
@@ -66,14 +68,19 @@ pub fn handle_burst_events(
     existing: Query<&Particle>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    quality: Res<QualitySettings>,
 ) {
+    let max = match quality.level {
+        QualityLevel::High => MAX_PARTICLES_HIGH,
+        QualityLevel::Low => MAX_PARTICLES_LOW,
+    };
     let current_count = existing.iter().count();
-    if current_count >= MAX_PARTICLES {
+    if current_count >= max {
         events.clear();
         return;
     }
 
-    let mut budget = MAX_PARTICLES - current_count;
+    let mut budget = max - current_count;
 
     for event in events.read() {
         let count = (event.count as usize).min(budget);
@@ -147,14 +154,19 @@ pub fn handle_styled_events(
     existing: Query<&Particle>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    quality: Res<QualitySettings>,
 ) {
+    let max = match quality.level {
+        QualityLevel::High => MAX_PARTICLES_HIGH,
+        QualityLevel::Low => MAX_PARTICLES_LOW,
+    };
     let current_count = existing.iter().count();
-    if current_count >= MAX_PARTICLES {
+    if current_count >= max {
         events.clear();
         return;
     }
 
-    let mut budget = MAX_PARTICLES - current_count;
+    let mut budget = max - current_count;
 
     for event in events.read() {
         let count = (event.count as usize).min(budget);
@@ -372,8 +384,13 @@ pub fn ball_trail_particles(
     existing: Query<&Particle>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    quality: Res<QualitySettings>,
 ) {
-    if existing.iter().count() >= MAX_PARTICLES {
+    let max = match quality.level {
+        QualityLevel::High => MAX_PARTICLES_HIGH,
+        QualityLevel::Low => MAX_PARTICLES_LOW,
+    };
+    if existing.iter().count() >= max {
         return;
     }
 
