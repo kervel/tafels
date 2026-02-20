@@ -15,6 +15,11 @@ use crate::network::{
 use tafels_shared::constants::MIN_BEACON_SEPARATION;
 use tafels_shared::protocol::{ClientMessage, encode};
 
+/// How much panels face the player vs the beacon's pre-set direction at activation.
+/// 0.0 = panels face beacon direction (current behaviour)
+/// 1.0 = panels face the player who activated them
+const PANEL_FACE_PLAYER_BLEND: f32 = 0.7;
+
 pub struct BeaconPlugin;
 
 impl Plugin for BeaconPlugin {
@@ -368,8 +373,15 @@ fn check_proximity_trigger(
             }
         }
 
+        // Blend beacon facing with player direction for panel orientation
+        let beacon_dir = facing.0.normalize_or_zero();
+        let to_player_dir = Vec3::new(dx, 0.0, dz).normalize_or_zero();
+        let blended_dir = (beacon_dir * (1.0 - PANEL_FACE_PLAYER_BLEND)
+            + to_player_dir * PANEL_FACE_PLAYER_BLEND)
+            .normalize_or_zero();
+
         // Spawn answer panels at beacon position
-        let facing_toward = beacon_tf.translation + facing.0 * 10.0;
+        let facing_toward = beacon_tf.translation + blended_dir * 10.0;
         super::panels::spawn_answer_panels(
             &mut commands,
             &mut meshes,
@@ -385,8 +397,7 @@ fn check_proximity_trigger(
         );
 
         // Compute the panel rotation for text alignment
-        let to_facing = facing.0.normalize_or_zero();
-        let text_rotation = Transform::IDENTITY.looking_to(-to_facing, Vec3::Y).rotation;
+        let text_rotation = Transform::IDENTITY.looking_to(-blended_dir, Vec3::Y).rotation;
 
         // Spawn question text above panels
         super::panels::spawn_question_text(

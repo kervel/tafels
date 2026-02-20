@@ -436,13 +436,20 @@ fn receive_messages(
                 }
             }
             WsEvent::Closed | WsEvent::Error(_) => {
-                warn!("WebSocket connection lost. Attempting reconnect...");
                 drop(receiver);
                 commands.remove_resource::<WsConnection>();
-                *status = ConnectionStatus::Reconnecting {
-                    attempt: 1,
-                    next_try: Timer::from_seconds(1.0, TimerMode::Once),
-                };
+                // Only attempt reconnection if we had a successful connection before.
+                // If we were still in Connecting state, the server was never reachable.
+                if matches!(*status, ConnectionStatus::Connected { .. } | ConnectionStatus::ConnectedSolo { .. }) {
+                    warn!("WebSocket connection lost. Attempting reconnect...");
+                    *status = ConnectionStatus::Reconnecting {
+                        attempt: 1,
+                        next_try: Timer::from_seconds(1.0, TimerMode::Once),
+                    };
+                } else {
+                    warn!("Server unreachable. Running in single-player mode.");
+                    *status = ConnectionStatus::Disconnected;
+                }
                 return;
             }
             _ => {}
