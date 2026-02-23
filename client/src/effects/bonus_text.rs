@@ -50,19 +50,28 @@ pub struct BonusText {
     pub age: f32,
     pub max_lifetime: f32,
     pub start_y: f32,
-    pub speed_tier: SpeedTier,
+    pub kind: BonusKind,
 }
 
 /// Marker for child glyph entities so we can set their material.
 #[derive(Component)]
 pub struct BonusGlyph;
 
+/// What kind of bonus this text represents (drives emissive color).
+#[derive(Clone, Copy, Debug)]
+pub enum BonusKind {
+    /// Coin reward — colored by speed tier.
+    Speed(SpeedTier),
+    /// Streak multiplier — always warm orange/red.
+    Streak,
+}
+
 /// Message to spawn a 3D bonus text at a world position.
 #[derive(Message)]
 pub struct BonusTextEvent {
     pub position: Vec3,
     pub text: String,
-    pub speed_tier: SpeedTier,
+    pub kind: BonusKind,
 }
 
 /// Listen for AnswerFeedback and emit BonusTextEvents for correct answers.
@@ -75,20 +84,25 @@ pub fn emit_bonus_text_on_feedback(
         return;
     }
 
-    let mut text = format!("+{}", fb.coins_delta);
+    // Coin reward text — colored by speed tier
+    events.write(BonusTextEvent {
+        position: fb.hit_position,
+        text: format!("+{}", fb.coins_delta),
+        kind: BonusKind::Speed(fb.speed_tier),
+    });
+
+    // Streak multiplier text — separate, offset upward, warm color
     if fb.combo >= 2 {
         let mult = match fb.combo {
             2 => "x1.5",
             _ => "x2",
         };
-        text = format!("{} {}", text, mult);
+        events.write(BonusTextEvent {
+            position: fb.hit_position + Vec3::Y * 1.5,
+            text: mult.to_string(),
+            kind: BonusKind::Streak,
+        });
     }
-
-    events.write(BonusTextEvent {
-        position: fb.hit_position,
-        text,
-        speed_tier: fb.speed_tier,
-    });
 }
 
 /// Spawn 3D bonus text from GLTF digit scenes.
@@ -128,7 +142,7 @@ pub fn handle_bonus_text_events(
                     age: 0.0,
                     max_lifetime: 2.5,
                     start_y: pos.y,
-                    speed_tier: event.speed_tier,
+                    kind: event.kind,
                 },
                 Transform::from_translation(pos)
                     .with_rotation(rotation)
@@ -172,10 +186,19 @@ pub fn color_bonus_glyphs(
             continue;
         }
 
-        let emissive = match bt.speed_tier {
-            SpeedTier::Lightning => bevy::color::LinearRgba::new(8.0, 30.0, 35.0, 1.0),
-            SpeedTier::Fast => bevy::color::LinearRgba::new(30.0, 25.0, 5.0, 1.0),
-            SpeedTier::Normal => bevy::color::LinearRgba::new(5.0, 25.0, 8.0, 1.0),
+        let emissive = match bt.kind {
+            BonusKind::Speed(SpeedTier::Lightning) => {
+                bevy::color::LinearRgba::new(8.0, 30.0, 35.0, 1.0) // cyan
+            }
+            BonusKind::Speed(SpeedTier::Fast) => {
+                bevy::color::LinearRgba::new(30.0, 25.0, 5.0, 1.0) // gold
+            }
+            BonusKind::Speed(SpeedTier::Normal) => {
+                bevy::color::LinearRgba::new(5.0, 25.0, 8.0, 1.0) // green
+            }
+            BonusKind::Streak => {
+                bevy::color::LinearRgba::new(35.0, 12.0, 3.0, 1.0) // hot orange
+            }
         };
 
         for child in glyph_children.iter() {
