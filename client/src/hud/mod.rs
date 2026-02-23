@@ -375,14 +375,16 @@ fn show_quality_notification(
     quality: Res<QualitySettings>,
     existing: Query<Entity, With<FeedbackPopup>>,
     game_font: Res<GameFont>,
+    mut last_level: Local<Option<QualityLevel>>,
 ) {
-    if !quality.is_changed() {
+    if *last_level == Some(quality.level) {
         return;
     }
+    *last_level = Some(quality.level);
 
     let msg = match quality.level {
         QualityLevel::Low => "Slow GPU, reducing effects",
-        QualityLevel::High => return, // no notification when going back to high
+        QualityLevel::High => return,
     };
 
     for entity in &existing {
