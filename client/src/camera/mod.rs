@@ -39,7 +39,7 @@ fn adapt_bloom_quality(
     for mut bloom in &mut bloom_query {
         bloom.intensity = match quality.level {
             crate::quality::QualityLevel::High => 0.5,
-            crate::quality::QualityLevel::Low => 0.3, // keep bloom on; resolution drop covers perf
+            crate::quality::QualityLevel::Low => 0.0,
         };
     }
 }

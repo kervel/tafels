@@ -1,14 +1,13 @@
 use std::collections::VecDeque;
 
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 
 pub struct QualityPlugin;
 
 impl Plugin for QualityPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(QualitySettings::default())
-            .add_systems(Update, (update_quality_settings, apply_resolution_scale));
+            .add_systems(Update, update_quality_settings);
     }
 }
 
@@ -106,55 +105,4 @@ fn update_quality_settings(time: Res<Time>, mut settings: ResMut<QualitySettings
         settings.level = QualityLevel::High;
         settings.consecutive_high = 0;
     }
-}
-
-/// Stores the native physical resolution so we can restore it on High quality.
-#[derive(Default)]
-struct NativeResolution {
-    width: u32,
-    height: u32,
-    captured: bool,
-}
-
-/// On Low quality, halve the physical render resolution.
-/// On High quality, restore native resolution.
-fn apply_resolution_scale(
-    quality: Res<QualitySettings>,
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
-    mut last_level: Local<Option<QualityLevel>>,
-    mut native: Local<NativeResolution>,
-) {
-    let Ok(mut window) = windows.single_mut() else {
-        return;
-    };
-
-    // Capture native resolution on first run
-    if !native.captured {
-        native.width = window.resolution.physical_width();
-        native.height = window.resolution.physical_height();
-        native.captured = true;
-    }
-
-    if *last_level == Some(quality.level) {
-        return;
-    }
-    *last_level = Some(quality.level);
-
-    match quality.level {
-        QualityLevel::High => {
-            window
-                .resolution
-                .set_physical_resolution(native.width, native.height);
-            info!(
-                "Render resolution: native ({}x{})",
-                native.width, native.height
-            );
-        }
-        QualityLevel::Low => {
-            let w = native.width / 2;
-            let h = native.height / 2;
-            window.resolution.set_physical_resolution(w, h);
-            info!("Render resolution: reduced ({}x{})", w, h);
-        }
-    };
 }
