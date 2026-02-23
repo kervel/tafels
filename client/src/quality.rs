@@ -113,16 +113,18 @@ fn update_quality_settings(time: Res<Time>, mut settings: ResMut<QualitySettings
 fn apply_resolution_scale(
     quality: Res<QualitySettings>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut last_level: Local<Option<QualityLevel>>,
 ) {
-    if !quality.is_changed() {
+    if *last_level == Some(quality.level) {
         return;
     }
+    *last_level = Some(quality.level);
     let Ok(mut window) = windows.single_mut() else {
         return;
     };
     let scale = match quality.level {
         QualityLevel::High => 1.0,
-        QualityLevel::Low => 0.5, // render at half resolution on low quality
+        QualityLevel::Low => 0.5,
     };
     window.resolution.set_scale_factor_override(Some(scale));
     info!("Render scale factor override: {scale}");
