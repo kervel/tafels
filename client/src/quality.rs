@@ -108,8 +108,8 @@ fn update_quality_settings(time: Res<Time>, mut settings: ResMut<QualitySettings
     }
 }
 
-/// On Low quality, reduce render resolution by overriding the scale factor.
-/// This is especially helpful on HiDPI displays where the GPU renders 4x pixels.
+/// On Low quality, reduce render resolution by bumping the scale factor override down.
+/// This makes the GPU render fewer physical pixels for the same window size.
 fn apply_resolution_scale(
     quality: Res<QualitySettings>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
@@ -122,16 +122,12 @@ fn apply_resolution_scale(
     let Ok(mut window) = windows.single_mut() else {
         return;
     };
-    match quality.level {
-        QualityLevel::High => {
-            // Use native HiDPI scale factor
-            window.resolution.set_scale_factor_override(None);
-            info!("Render scale: native");
-        }
-        QualityLevel::Low => {
-            // Force scale factor to 1.0 — on HiDPI (2x) this halves pixels rendered
-            window.resolution.set_scale_factor_override(Some(1.0));
-            info!("Render scale: reduced (1.0 override)");
-        }
+    // A lower scale_factor_override means Bevy thinks each logical pixel is fewer
+    // physical pixels, so the render target shrinks while the window stays the same size.
+    let scale = match quality.level {
+        QualityLevel::High => None,      // native OS scale
+        QualityLevel::Low => Some(0.5),  // render at ~25% pixel count on most displays
     };
+    window.resolution.set_scale_factor_override(scale);
+    info!("Render scale override: {:?}", scale);
 }
