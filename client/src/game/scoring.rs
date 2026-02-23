@@ -5,7 +5,7 @@ use super::exercise::{ActiveExercise, ExerciseId, ExerciseState};
 use super::panels::{AnswerPanel, PanelPole, QuestionText, TimerText};
 use super::{ActiveExercises, GameSession, GameState};
 use crate::effects::particles::ParticleBurstEvent;
-use crate::hud::AnswerFeedback;
+use crate::hud::{AnswerFeedback, SpeedTier};
 
 pub struct ScoringPlugin;
 
@@ -38,8 +38,7 @@ fn combo_multiplier(combo: u32) -> f32 {
     match combo {
         0 | 1 => 1.0,
         2 => 1.5,
-        3 => 2.0,
-        _ => 3.0,
+        _ => 2.0, // capped at x2 (was x3)
     }
 }
 
@@ -84,16 +83,23 @@ fn process_pending_answer(
 
         let multiplier = combo_multiplier(session.combo);
 
-        let mut base_reward = 3;
-
-        // Speed bonus
+        // Speed tier bonus
         let fraction_remaining = exercise.time_remaining / exercise.time_limit;
-        if fraction_remaining > 0.75 {
-            base_reward += 2;
+        let speed_tier = if fraction_remaining > 0.75 {
+            SpeedTier::Lightning
         } else if fraction_remaining > 0.5 {
-            base_reward += 1;
-        }
+            SpeedTier::Fast
+        } else {
+            SpeedTier::Normal
+        };
 
+        let speed_bonus = match speed_tier {
+            SpeedTier::Lightning => 3,
+            SpeedTier::Fast => 1,
+            SpeedTier::Normal => 0,
+        };
+
+        let base_reward = 3 + speed_bonus;
         let reward = (base_reward as f32 * multiplier).round() as i32;
 
         // Spawn a pending coin instead of adding coins directly
@@ -107,32 +113,69 @@ fn process_pending_answer(
             correct: true,
             coins_delta: reward,
             combo: session.combo,
+            speed_tier,
+            hit_position: answer.hit_position,
         });
 
-        // Scale particle effects by combo level
-        let combo_scale = 1.0 + (session.combo.min(4) as f32 - 1.0) * 0.3;
-        let base_count = (60.0 * combo_scale) as u32;
-        let base_speed = 10.0 * combo_scale;
-        let base_size = 0.2 * combo_scale;
+        // Scale particle effects by combo AND speed tier
+        let combo_scale = 1.0 + (session.combo.min(3) as f32 - 1.0) * 0.25;
+        let speed_scale = match speed_tier {
+            SpeedTier::Lightning => 1.6,
+            SpeedTier::Fast => 1.2,
+            SpeedTier::Normal => 1.0,
+        };
+        let scale = combo_scale * speed_scale;
 
-        // Green/gold celebration burst
-        burst_events.write(ParticleBurstEvent {
-            position: answer.hit_position,
-            color: Color::srgb(0.3, 1.0, 0.4),
-            count: base_count,
-            speed: base_speed,
-            lifetime: 2.0,
-            size: base_size,
-        });
-        // Extra gold sparkles
-        burst_events.write(ParticleBurstEvent {
-            position: answer.hit_position,
-            color: Color::srgb(1.0, 0.85, 0.0),
-            count: (40.0 * combo_scale) as u32,
-            speed: 8.0 * combo_scale,
-            lifetime: 1.5,
-            size: 0.15 * combo_scale,
-        });
+        match speed_tier {
+            SpeedTier::Lightning => {
+                // Multi-color neon burst — green, gold, cyan, magenta
+                for &color in &[
+                    Color::srgb(0.3, 1.0, 0.4),  // green
+                    Color::srgb(1.0, 0.85, 0.0),  // gold
+                    Color::srgb(0.2, 0.9, 1.0),   // cyan
+                    Color::srgb(1.0, 0.3, 0.8),   // magenta
+                ] {
+                    burst_events.write(ParticleBurstEvent {
+                        position: answer.hit_position,
+                        color,
+                        count: (25.0 * scale) as u32,
+                        speed: 12.0 * scale,
+                        lifetime: 2.5,
+                        size: 0.25 * scale,
+                    });
+                }
+            }
+            SpeedTier::Fast => {
+                // Green + gold burst
+                burst_events.write(ParticleBurstEvent {
+                    position: answer.hit_position,
+                    color: Color::srgb(0.3, 1.0, 0.4),
+                    count: (50.0 * scale) as u32,
+                    speed: 10.0 * scale,
+                    lifetime: 2.0,
+                    size: 0.2 * scale,
+                });
+                burst_events.write(ParticleBurstEvent {
+                    position: answer.hit_position,
+                    color: Color::srgb(1.0, 0.85, 0.0),
+                    count: (30.0 * scale) as u32,
+                    speed: 8.0 * scale,
+                    lifetime: 1.5,
+                    size: 0.15 * scale,
+                });
+            }
+            SpeedTier::Normal => {
+                // Basic green burst
+                burst_events.write(ParticleBurstEvent {
+                    position: answer.hit_position,
+                    color: Color::srgb(0.3, 1.0, 0.4),
+                    count: (40.0 * scale) as u32,
+                    speed: 8.0 * scale,
+                    lifetime: 1.5,
+                    size: 0.18 * scale,
+                });
+            }
+        }
     } else {
         session.wrong_count += 1;
         session.combo = 0;
@@ -141,6 +184,8 @@ fn process_pending_answer(
             correct: false,
             coins_delta: -2,
             combo: 0,
+            speed_tier: SpeedTier::Normal,
+            hit_position: answer.hit_position,
         });
 
         // Red error burst

@@ -275,15 +275,13 @@ fn update_combo_display(
         if session.combo >= 2 {
             let multiplier = match session.combo {
                 2 => 1.5,
-                3 => 2.0,
-                _ => 3.0,
+                _ => 2.0,
             };
             **text = format!("x{} Combo!", multiplier);
 
             color.0 = match session.combo {
                 2 => Color::srgb(1.0, 0.6, 0.0),   // orange
-                3 => Color::srgb(1.0, 0.3, 0.0),   // deep orange
-                _ => Color::srgb(1.0, 0.15, 0.15), // red
+                _ => Color::srgb(1.0, 0.2, 0.1),   // bright red-orange
             };
         } else {
             **text = String::new();
@@ -341,12 +339,25 @@ fn update_connection_indicator(
     }
 }
 
+/// How quickly the player answered.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpeedTier {
+    /// Answered with > 75% time remaining.
+    Lightning,
+    /// Answered with > 50% time remaining.
+    Fast,
+    /// Answered with ≤ 50% time remaining.
+    Normal,
+}
+
 /// Resource to trigger feedback popup from scoring system.
 #[derive(Resource)]
 pub struct AnswerFeedback {
     pub correct: bool,
     pub coins_delta: i32,
     pub combo: u32,
+    pub speed_tier: SpeedTier,
+    pub hit_position: Vec3,
 }
 
 /// Spawn a centered feedback text when an answer is processed.
@@ -369,16 +380,20 @@ fn show_answer_feedback(
         let combo_info = if fb.combo >= 2 {
             let mult = match fb.combo {
                 2 => "1.5x",
-                3 => "2x",
-                _ => "3x",
+                _ => "2x",
             };
             format!(" ({})", mult)
         } else {
             String::new()
         };
+        let (prefix, tier_color) = match fb.speed_tier {
+            SpeedTier::Lightning => ("Lightning!", Color::srgb(0.2, 0.9, 1.0)),
+            SpeedTier::Fast => ("Fast!", Color::srgb(1.0, 0.85, 0.0)),
+            SpeedTier::Normal => ("Correct!", Color::srgb(0.2, 1.0, 0.3)),
+        };
         (
-            format!("Correct! +{} coins{}", fb.coins_delta, combo_info),
-            Color::srgb(0.2, 1.0, 0.3),
+            format!("{} +{} coins{}", prefix, fb.coins_delta, combo_info),
+            tier_color,
         )
     } else {
         (
