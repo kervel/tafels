@@ -124,7 +124,7 @@ fn apply_resolution_scale(
     };
     let scale = match quality.level {
         QualityLevel::High => 1.0,
-        QualityLevel::Low => 0.5,
+        QualityLevel::Low => 0.35, // aggressive downscale; keeps bloom affordable
     };
     window.resolution.set_scale_factor_override(Some(scale));
     info!("Render scale factor override: {scale}");
