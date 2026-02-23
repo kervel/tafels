@@ -112,10 +112,9 @@ pub fn handle_bonus_text_events(
             Quat::IDENTITY
         };
 
-        // The GLB text objects are created in Blender's XY plane (facing -Y).
-        // Rotate -90° around X to stand up, then 180° around Y to un-mirror.
-        let stand_up = Quat::from_rotation_y(std::f32::consts::PI)
-            * Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2);
+        // The GLB text objects lie in Blender's XY plane.
+        // Rotate +90° around X to stand them upright.
+        let stand_up = Quat::from_rotation_x(std::f32::consts::FRAC_PI_2);
 
         // Layout: place each character side by side (skip spaces)
         let chars: Vec<char> = event.text.chars().filter(|c| *c != ' ').collect();
