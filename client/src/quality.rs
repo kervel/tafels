@@ -108,26 +108,53 @@ fn update_quality_settings(time: Res<Time>, mut settings: ResMut<QualitySettings
     }
 }
 
-/// On Low quality, reduce render resolution by bumping the scale factor override down.
-/// This makes the GPU render fewer physical pixels for the same window size.
+/// Stores the native physical resolution so we can restore it on High quality.
+#[derive(Default)]
+struct NativeResolution {
+    width: u32,
+    height: u32,
+    captured: bool,
+}
+
+/// On Low quality, halve the physical render resolution.
+/// On High quality, restore native resolution.
 fn apply_resolution_scale(
     quality: Res<QualitySettings>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     mut last_level: Local<Option<QualityLevel>>,
+    mut native: Local<NativeResolution>,
 ) {
+    let Ok(mut window) = windows.single_mut() else {
+        return;
+    };
+
+    // Capture native resolution on first run
+    if !native.captured {
+        native.width = window.resolution.physical_width();
+        native.height = window.resolution.physical_height();
+        native.captured = true;
+    }
+
     if *last_level == Some(quality.level) {
         return;
     }
     *last_level = Some(quality.level);
-    let Ok(mut window) = windows.single_mut() else {
-        return;
+
+    match quality.level {
+        QualityLevel::High => {
+            window
+                .resolution
+                .set_physical_resolution(native.width, native.height);
+            info!(
+                "Render resolution: native ({}x{})",
+                native.width, native.height
+            );
+        }
+        QualityLevel::Low => {
+            let w = native.width / 2;
+            let h = native.height / 2;
+            window.resolution.set_physical_resolution(w, h);
+            info!("Render resolution: reduced ({}x{})", w, h);
+        }
     };
-    // A lower scale_factor_override means Bevy thinks each logical pixel is fewer
-    // physical pixels, so the render target shrinks while the window stays the same size.
-    let scale = match quality.level {
-        QualityLevel::High => None,      // native OS scale
-        QualityLevel::Low => Some(0.5),  // render at ~25% pixel count on most displays
-    };
-    window.resolution.set_scale_factor_override(scale);
-    info!("Render scale override: {:?}", scale);
 }
