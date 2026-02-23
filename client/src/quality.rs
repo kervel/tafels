@@ -1,13 +1,14 @@
 use std::collections::VecDeque;
 
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 pub struct QualityPlugin;
 
 impl Plugin for QualityPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(QualitySettings::default())
-            .add_systems(Update, update_quality_settings);
+            .add_systems(Update, (update_quality_settings, apply_resolution_scale));
     }
 }
 
@@ -105,4 +106,24 @@ fn update_quality_settings(time: Res<Time>, mut settings: ResMut<QualitySettings
         settings.level = QualityLevel::High;
         settings.consecutive_high = 0;
     }
+}
+
+/// On Low quality, reduce render resolution by overriding the scale factor.
+/// This is especially helpful on HiDPI displays where the GPU renders 4x pixels.
+fn apply_resolution_scale(
+    quality: Res<QualitySettings>,
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    if !quality.is_changed() {
+        return;
+    }
+    let Ok(mut window) = windows.single_mut() else {
+        return;
+    };
+    let scale = match quality.level {
+        QualityLevel::High => 1.0,
+        QualityLevel::Low => 0.5, // render at half resolution on low quality
+    };
+    window.resolution.set_scale_factor_override(Some(scale));
+    info!("Render scale factor override: {scale}");
 }
