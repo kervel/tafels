@@ -122,10 +122,16 @@ fn apply_resolution_scale(
     let Ok(mut window) = windows.single_mut() else {
         return;
     };
-    let scale = match quality.level {
-        QualityLevel::High => 1.0,
-        QualityLevel::Low => 0.35, // aggressive downscale; keeps bloom affordable
+    match quality.level {
+        QualityLevel::High => {
+            // Use native HiDPI scale factor
+            window.resolution.set_scale_factor_override(None);
+            info!("Render scale: native");
+        }
+        QualityLevel::Low => {
+            // Force scale factor to 1.0 — on HiDPI (2x) this halves pixels rendered
+            window.resolution.set_scale_factor_override(Some(1.0));
+            info!("Render scale: reduced (1.0 override)");
+        }
     };
-    window.resolution.set_scale_factor_override(Some(scale));
-    info!("Render scale factor override: {scale}");
 }

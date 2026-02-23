@@ -15,7 +15,6 @@ mod vegetation;
 mod touch;
 
 use bevy::prelude::*;
-use bevy::window::WindowResolution;
 
 fn main() {
     App::new()
@@ -25,8 +24,6 @@ fn main() {
                 title: "3dt - Math Tables Game".to_string(),
                 fit_canvas_to_parent: true,
                 prevent_default_event_handling: true,
-                resolution: WindowResolution::default()
-                    .with_scale_factor_override(1.0),
                 ..default()
             }),
             ..default()
