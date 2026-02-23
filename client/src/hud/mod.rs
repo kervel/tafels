@@ -9,6 +9,7 @@ use crate::game::GameState;
 use crate::game::Leaderboard;
 use crate::game::MultiplayerRoundState;
 use crate::network::ConnectionStatus;
+use crate::quality::{QualityLevel, QualitySettings};
 
 #[derive(Resource, Clone)]
 pub struct GameFont(pub Handle<Font>);
@@ -31,7 +32,8 @@ impl Plugin for HudPlugin {
                     update_combo_display,
                     update_round_timer,
                     update_connection_indicator,
-                    show_answer_feedback,
+                    consume_answer_feedback,
+                    show_quality_notification,
                     tick_feedback,
                     update_leaderboard,
                 )
@@ -360,71 +362,54 @@ pub struct AnswerFeedback {
     pub hit_position: Vec3,
 }
 
-/// Spawn a centered feedback text when an answer is processed.
-fn show_answer_feedback(
+/// Remove the AnswerFeedback resource each frame (3D bonus text handles the visuals now).
+fn consume_answer_feedback(mut commands: Commands, feedback: Option<Res<AnswerFeedback>>) {
+    if feedback.is_some() {
+        commands.remove_resource::<AnswerFeedback>();
+    }
+}
+
+/// Show a notification when adaptive quality changes.
+fn show_quality_notification(
     mut commands: Commands,
-    feedback: Option<Res<AnswerFeedback>>,
+    quality: Res<QualitySettings>,
     existing: Query<Entity, With<FeedbackPopup>>,
     game_font: Res<GameFont>,
 ) {
-    let Some(fb) = feedback else {
+    if !quality.is_changed() {
         return;
+    }
+
+    let msg = match quality.level {
+        QualityLevel::Low => "Slow GPU, reducing effects",
+        QualityLevel::High => return, // no notification when going back to high
     };
 
-    // Remove old popup if any
     for entity in &existing {
         commands.entity(entity).despawn();
     }
 
-    let (msg, color) = if fb.correct {
-        let combo_info = if fb.combo >= 2 {
-            let mult = match fb.combo {
-                2 => "1.5x",
-                _ => "2x",
-            };
-            format!(" ({})", mult)
-        } else {
-            String::new()
-        };
-        let (prefix, tier_color) = match fb.speed_tier {
-            SpeedTier::Lightning => ("Lightning!", Color::srgb(0.2, 0.9, 1.0)),
-            SpeedTier::Fast => ("Fast!", Color::srgb(1.0, 0.85, 0.0)),
-            SpeedTier::Normal => ("Correct!", Color::srgb(0.2, 1.0, 0.3)),
-        };
-        (
-            format!("{} +{} coins{}", prefix, fb.coins_delta, combo_info),
-            tier_color,
-        )
-    } else {
-        (
-            format!("Wrong! {} coins", fb.coins_delta),
-            Color::srgb(1.0, 0.3, 0.2),
-        )
-    };
-
     commands.spawn((
-        FeedbackPopup { timer: 1.5 },
+        FeedbackPopup { timer: 3.0 },
         Text::new(msg),
         TextFont {
             font: game_font.0.clone(),
-            font_size: 42.0,
+            font_size: 28.0,
             ..default()
         },
-        TextColor(color),
+        TextColor(Color::srgb(0.9, 0.7, 0.3)),
         Node {
             position_type: PositionType::Absolute,
             left: Val::Percent(50.0),
             top: Val::Percent(40.0),
             margin: UiRect {
-                left: Val::Px(-150.0),
+                left: Val::Px(-180.0),
                 ..default()
             },
             ..default()
         },
         BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
     ));
-
-    commands.remove_resource::<AnswerFeedback>();
 }
 
 /// Fade out and despawn feedback popup.
