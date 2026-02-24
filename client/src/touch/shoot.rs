@@ -30,8 +30,7 @@ struct ShootButtonMarker;
 struct ShootButtonRoot;
 
 fn spawn_shoot_button(mut commands: Commands) {
-    // Outer container: same size and position as joystick hint (200x200, bottom 5%)
-    // so their centers align. The container is invisible — visual is the inner circle.
+    // All sizes use Vmin for DPI independence, matching joystick sizing.
     commands
         .spawn((
             ShootButtonRoot,
@@ -41,8 +40,8 @@ fn spawn_shoot_button(mut commands: Commands) {
                 position_type: PositionType::Absolute,
                 right: Val::Percent(3.0),
                 bottom: Val::Percent(5.0),
-                width: Val::Px(200.0),
-                height: Val::Px(200.0),
+                width: Val::VMin(25.0),
+                height: Val::VMin(25.0),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..default()
@@ -54,11 +53,11 @@ fn spawn_shoot_button(mut commands: Commands) {
             // Visible ring — border only, no fill (filled border_radius kills mobile GPUs)
             btn.spawn((
                 Node {
-                    width: Val::Px(140.0),
-                    height: Val::Px(140.0),
+                    width: Val::VMin(18.0),
+                    height: Val::VMin(18.0),
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
-                    border: UiRect::all(Val::Px(3.0)),
+                    border: UiRect::all(Val::VMin(0.4)),
                     border_radius: BorderRadius::all(Val::Percent(50.0)),
                     ..default()
                 },
@@ -69,8 +68,8 @@ fn spawn_shoot_button(mut commands: Commands) {
                 // Small opaque inner ball (kept small to avoid GPU issue)
                 circle.spawn((
                     Node {
-                        width: Val::Px(50.0),
-                        height: Val::Px(50.0),
+                        width: Val::VMin(6.0),
+                        height: Val::VMin(6.0),
                         border_radius: BorderRadius::all(Val::Percent(50.0)),
                         ..default()
                     },

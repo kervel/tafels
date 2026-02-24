@@ -60,6 +60,9 @@ struct JoystickThumb;
 struct JoystickRoot;
 
 fn spawn_joystick_ui(mut commands: Commands) {
+    // All sizes use Vmin (% of smaller viewport dimension) for DPI independence.
+    // On a 400px-short phone: 25 Vmin = 100px, on 800px = 200px — scales naturally.
+
     // Hint circle — small visual indicator, border only (no fill to avoid GPU issues)
     commands.spawn((
         JoystickRoot,
@@ -68,9 +71,9 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Percent(8.0),
             bottom: Val::Percent(5.0),
-            width: Val::Px(200.0),
-            height: Val::Px(200.0),
-            border: UiRect::all(Val::Px(3.0)),
+            width: Val::VMin(25.0),
+            height: Val::VMin(25.0),
+            border: UiRect::all(Val::VMin(0.4)),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -87,9 +90,9 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Px(0.0),
             top: Val::Px(0.0),
-            width: Val::Px(200.0),
-            height: Val::Px(200.0),
-            border: UiRect::all(Val::Px(2.0)),
+            width: Val::VMin(25.0),
+            height: Val::VMin(25.0),
+            border: UiRect::all(Val::VMin(0.3)),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -107,8 +110,8 @@ fn spawn_joystick_ui(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: Val::Px(0.0),
             top: Val::Px(0.0),
-            width: Val::Px(120.0),
-            height: Val::Px(120.0),
+            width: Val::VMin(15.0),
+            height: Val::VMin(15.0),
             border_radius: BorderRadius::all(Val::Percent(50.0)),
             ..default()
         },
@@ -139,15 +142,19 @@ fn touch_joystick_input(
     };
     let window_width = window.width();
     let window_height = window.height();
+    let vmin = window_width.min(window_height);
 
     // Compute fixed joystick center from the hint circle position
-    // Hint visual is at left: 8%, bottom: 5%, size 200x200
+    // Hint visual is at left: 8%, bottom: 5%, size 25 Vmin
+    let joystick_size = vmin * 0.25;
     let hint_center = Vec2::new(
-        window_width * 0.08 + 100.0,
-        window_height - (window_height * 0.05 + 100.0),
+        window_width * 0.08 + joystick_size * 0.5,
+        window_height - (window_height * 0.05 + joystick_size * 0.5),
     );
-    // Accept touches within the joystick area
-    let activation_radius = 450.0;
+    // Accept touches within a generous area around the joystick
+    let activation_radius = joystick_size * 2.0;
+    // Max drag radius scales with viewport
+    joystick.max_radius = vmin * 0.6;
 
     for event in touch_events.read() {
         match event.phase {
@@ -177,21 +184,27 @@ fn touch_joystick_input(
 
 fn update_joystick_ui(
     joystick: Res<JoystickState>,
+    windows: Query<&Window>,
     mut hint_query: Query<&mut Visibility, (With<JoystickHint>, Without<JoystickBase>, Without<JoystickThumb>)>,
     mut base_query: Query<(&mut Visibility, &mut Node), (With<JoystickBase>, Without<JoystickHint>, Without<JoystickThumb>)>,
     mut thumb_query: Query<(&mut Visibility, &mut Node), (With<JoystickThumb>, Without<JoystickHint>, Without<JoystickBase>)>,
 ) {
+    let Ok(window) = windows.single() else { return };
+    let vmin = window.width().min(window.height());
+    let base_half = vmin * 0.25 * 0.5;  // 25 Vmin / 2
+    let thumb_half = vmin * 0.15 * 0.5; // 15 Vmin / 2
+
     if joystick.active {
         // Hide hint
         for mut vis in &mut hint_query {
             *vis = Visibility::Hidden;
         }
 
-        // Show and position base at fixed origin (visual is 200px, centered)
+        // Show and position base at fixed origin, centered
         for (mut vis, mut node) in &mut base_query {
             *vis = Visibility::Inherited;
-            node.left = Val::Px(joystick.origin.x - 100.0);
-            node.top = Val::Px(joystick.origin.y - 100.0);
+            node.left = Val::Px(joystick.origin.x - base_half);
+            node.top = Val::Px(joystick.origin.y - base_half);
         }
 
         // Show and position thumb at current (clamped)
@@ -205,8 +218,8 @@ fn update_joystick_ui(
 
         for (mut vis, mut node) in &mut thumb_query {
             *vis = Visibility::Inherited;
-            node.left = Val::Px(clamped.x - 60.0);
-            node.top = Val::Px(clamped.y - 60.0);
+            node.left = Val::Px(clamped.x - thumb_half);
+            node.top = Val::Px(clamped.y - thumb_half);
         }
     } else {
         // Show hint, hide base + thumb
