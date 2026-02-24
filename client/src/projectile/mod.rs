@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::camera::orbit::OrbitCamera;
 use crate::character::CharacterMarker;
-use crate::game::GameState;
+use crate::game::gameplay_active;
 use crate::network::{ConnectionStatus, RemoteBallShotEvent, WsConnection};
 use tafels_shared::protocol::{ClientMessage, encode};
 
@@ -15,7 +15,7 @@ impl Plugin for ProjectilePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (spawn_ball, spawn_remote_ball).run_if(in_state(GameState::Playing)),
+            (spawn_ball, spawn_remote_ball).run_if(gameplay_active),
         )
         .add_systems(
             FixedUpdate,
@@ -26,7 +26,7 @@ impl Plugin for ProjectilePlugin {
                 collision::check_ball_panel_collision,
                 collision::check_ball_beacon_collision,
             )
-                .run_if(in_state(GameState::Playing)),
+                .run_if(gameplay_active),
         );
     }
 }

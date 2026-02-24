@@ -17,7 +17,7 @@ impl Plugin for CharacterPlugin {
                     controller::update_character_state,
                 )
                     .chain()
-                    .run_if(in_state(crate::game::GameState::Playing)),
+                    .run_if(crate::game::gameplay_active),
             )
             .add_systems(
                 Update,

@@ -5,7 +5,7 @@ pub mod shoot;
 
 use bevy::prelude::*;
 use bevy::input::touch::TouchInput;
-use crate::game::GameState;
+use crate::game::{GameState, MultiplayerRoundState};
 
 pub struct TouchPlugin;
 
@@ -49,7 +49,14 @@ fn runtime_touch_detection(
     touch_events.clear();
 }
 
-/// Run condition: only run when touch device detected and playing.
-pub fn touch_playing(touch: Res<TouchDevice>, state: Res<State<GameState>>) -> bool {
-    touch.detected && *state.get() == GameState::Playing
+/// Run condition: only run when touch device detected and gameplay is active
+/// (not during lobby, countdown, or round-over screens).
+pub fn touch_playing(
+    touch: Res<TouchDevice>,
+    state: Res<State<GameState>>,
+    round: Res<MultiplayerRoundState>,
+) -> bool {
+    touch.detected
+        && *state.get() == GameState::Playing
+        && matches!(*round, MultiplayerRoundState::None | MultiplayerRoundState::Playing)
 }

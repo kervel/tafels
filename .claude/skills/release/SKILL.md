@@ -21,16 +21,18 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes
 ```
 
-### 4. Monitor CI
+### 4. Wait for CI to complete
 - The `Release` workflow triggers on tag push (builds WASM, Docker image, Helm chart)
-- Poll until complete:
+- **You MUST wait for CI to fully complete before proceeding to step 5.** Do NOT update the flux repo until CI succeeds.
+- Get the run ID and watch it in the background:
 ```bash
 gh run list --workflow=release.yml --limit 1
-gh run watch <run-id>
+gh run watch <run-id>   # blocks until complete (~15 min)
 ```
-- If CI fails: inspect logs with `gh run view <run-id> --log-failed`, fix, and **bump to a new version** (never reuse tags)
+- If CI fails: inspect logs with `gh run view <run-id> --log-failed`, fix, and **bump to a new version** (never reuse tags). Then restart from step 2.
+- **Only proceed to step 5 after CI reports success.**
 
-### 5. Update mlops repo
+### 5. Update flux repo (only after CI succeeds)
 Edit `../frank-personal-server/flux/apps/tafels/helmrelease.yaml`:
 - Update `spec.chart.spec.version` to the new version (without `v` prefix, e.g. `0.1.23`)
 - Commit and push:
@@ -43,4 +45,4 @@ git push
 
 ## Common Issues
 - **Flux won't pull new image if chart version unchanged** — always bump version, never recreate tags
-- **CI takes ~15 min** — wait for full completion before updating mlops repo
+- **Never update flux repo before CI completes** — the Helm chart won't exist yet, causing Flux reconciliation errors

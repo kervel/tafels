@@ -118,6 +118,17 @@ impl Default for GameSession {
     }
 }
 
+/// Run condition: true only when the game is actively playable
+/// (solo mode or multiplayer round in progress). False during lobby,
+/// countdown, and round-over screens.
+pub fn gameplay_active(
+    state: Res<State<GameState>>,
+    round: Res<MultiplayerRoundState>,
+) -> bool {
+    *state.get() == GameState::Playing
+        && matches!(*round, MultiplayerRoundState::None | MultiplayerRoundState::Playing)
+}
+
 fn init_game_session(
     mut session: ResMut<GameSession>,
     mut active_exercises: ResMut<ActiveExercises>,
