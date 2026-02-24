@@ -35,6 +35,7 @@ fn touch_camera_input(
     mut cam_state: ResMut<TouchCameraState>,
     mut orbit_query: Query<&mut OrbitCamera>,
     touches: Res<Touches>,
+    windows: Query<&Window>,
 ) {
     // Don't orbit while pinching (2+ fingers)
     let active_count = touches.iter().count();
@@ -43,11 +44,28 @@ fn touch_camera_input(
         return;
     }
 
+    // Compute joystick exclusion zone (same math as joystick input)
+    let joystick_zone = windows.single().ok().map(|window| {
+        let vmin = window.width().min(window.height());
+        let joystick_size = vmin * 0.25;
+        let center = Vec2::new(
+            window.width() * 0.15 + joystick_size * 0.5,
+            window.height() - (window.height() * 0.05 + joystick_size * 0.5),
+        );
+        (center, joystick_size * 1.2)
+    });
+
     for event in touch_events.read() {
         match event.phase {
             TouchPhase::Started => {
-                // Only if not the joystick finger
-                if joystick.touch_id != Some(event.id) && cam_state.touch_id.is_none() {
+                // Reject if this is the joystick finger OR if touch lands in joystick zone
+                let in_joystick_zone = joystick_zone
+                    .map(|(center, radius)| event.position.distance(center) < radius)
+                    .unwrap_or(false);
+                if joystick.touch_id != Some(event.id)
+                    && !in_joystick_zone
+                    && cam_state.touch_id.is_none()
+                {
                     cam_state.touch_id = Some(event.id);
                     cam_state.last_position = event.position;
 
