@@ -69,7 +69,7 @@ fn spawn_joystick_ui(mut commands: Commands) {
         JoystickHint,
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Percent(8.0),
+            left: Val::Percent(12.0),
             bottom: Val::Percent(5.0),
             width: Val::VMin(25.0),
             height: Val::VMin(25.0),
@@ -145,14 +145,14 @@ fn touch_joystick_input(
     let vmin = window_width.min(window_height);
 
     // Compute fixed joystick center from the hint circle position
-    // Hint visual is at left: 8%, bottom: 5%, size 25 Vmin
+    // Hint visual is at left: 12%, bottom: 5%, size 25 Vmin
     let joystick_size = vmin * 0.25;
     let hint_center = Vec2::new(
-        window_width * 0.08 + joystick_size * 0.5,
+        window_width * 0.12 + joystick_size * 0.5,
         window_height - (window_height * 0.05 + joystick_size * 0.5),
     );
-    // Accept touches within a generous area around the joystick
-    let activation_radius = joystick_size * 2.0;
+    // Accept touches near the joystick — kept tight so touches above don't steal orbit input
+    let activation_radius = joystick_size * 1.2;
     // Max drag radius scales with viewport
     joystick.max_radius = vmin * 0.6;
 

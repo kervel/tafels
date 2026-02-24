@@ -452,13 +452,13 @@ fn spawn_lobby_screen(commands: &mut Commands, font: &Handle<Font>) {
                 },
             ));
 
-            // Buttons container
+            // Buttons container — column layout so it fits portrait screens
             parent
                 .spawn(Node {
-                    flex_direction: FlexDirection::Row,
+                    flex_direction: FlexDirection::Column,
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
-                    column_gap: Val::Px(16.0),
+                    row_gap: Val::Px(12.0),
                     margin: UiRect::axes(Val::ZERO, Val::Px(20.0)),
                     ..default()
                 })

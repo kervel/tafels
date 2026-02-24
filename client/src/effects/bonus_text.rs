@@ -169,7 +169,9 @@ pub fn handle_bonus_text_events(
 }
 
 /// Override materials on bonus glyph children to apply speed-tier emissive colors.
+/// Clones materials so glyphs sharing the same digit GLB don't overwrite each other.
 pub fn color_bonus_glyphs(
+    mut commands: Commands,
     glyphs: Query<(&ChildOf, &Children), With<BonusGlyph>>,
     bonus_texts: Query<&BonusText>,
     mesh_entities: Query<&MeshMaterial3d<StandardMaterial>>,
@@ -202,27 +204,32 @@ pub fn color_bonus_glyphs(
         };
 
         for child in glyph_children.iter() {
-            color_descendants(child, &all_children, &mesh_entities, &mut materials, emissive);
+            color_descendants(child, &mut commands, &all_children, &mesh_entities, &mut materials, emissive);
         }
     }
 }
 
 fn color_descendants(
     entity: Entity,
+    commands: &mut Commands,
     all_children: &Query<&Children>,
     mesh_entities: &Query<&MeshMaterial3d<StandardMaterial>>,
     materials: &mut Assets<StandardMaterial>,
     emissive: bevy::color::LinearRgba,
 ) {
     if let Ok(mat_handle) = mesh_entities.get(entity) {
-        if let Some(mat) = materials.get_mut(&mat_handle.0) {
-            mat.base_color = Color::WHITE;
-            mat.emissive = emissive;
+        // Clone the material so shared digit GLBs get independent colors.
+        if let Some(mat) = materials.get(&mat_handle.0) {
+            let mut new_mat = mat.clone();
+            new_mat.base_color = Color::WHITE;
+            new_mat.emissive = emissive;
+            let new_handle = materials.add(new_mat);
+            commands.entity(entity).insert(MeshMaterial3d(new_handle));
         }
     }
     if let Ok(children) = all_children.get(entity) {
         for child in children.iter() {
-            color_descendants(child, all_children, mesh_entities, materials, emissive);
+            color_descendants(child, commands, all_children, mesh_entities, materials, emissive);
         }
     }
 }
