@@ -82,8 +82,8 @@ fn touch_camera_input(
 
                     let sensitivity = 0.005;
                     for mut orbit in &mut orbit_query {
-                        orbit.yaw -= delta.x * sensitivity;
-                        orbit.pitch += delta.y * sensitivity;
+                        orbit.yaw += delta.x * sensitivity;
+                        orbit.pitch -= delta.y * sensitivity;
                         orbit.pitch = orbit.pitch.clamp(-1.2, 1.2);
                     }
                 }

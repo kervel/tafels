@@ -3,6 +3,8 @@ pub mod controller;
 
 use bevy::prelude::*;
 
+use crate::quality::CharacterModelAsset;
+
 pub struct CharacterPlugin;
 
 impl Plugin for CharacterPlugin {
@@ -22,6 +24,7 @@ impl Plugin for CharacterPlugin {
             .add_systems(
                 Update,
                 (
+                    swap_character_model_on_quality_change,
                     animation::setup_character_animations,
                     animation::animate_character,
                 )
@@ -76,6 +79,7 @@ fn spawn_character(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     terrain: Option<Res<crate::terrain::TerrainResource>>,
+    model_asset: Res<CharacterModelAsset>,
 ) {
     let spawn_pos = if let Some(terrain) = &terrain {
         let y = crate::terrain::heightmap::sample_height(&terrain.heightmap, 0.0, 0.0);
@@ -84,12 +88,11 @@ fn spawn_character(
         Vec3::ZERO
     };
 
-    // char_adventurer from Poly Pizza (1.86m native height, 10K tris)
     commands.spawn((
         SceneRoot(asset_server.load(
-            GltfAssetLabel::Scene(0).from_asset("models/char_adventurer/char_adventurer.glb"),
+            GltfAssetLabel::Scene(0).from_asset(model_asset.path),
         )),
-        Transform::from_translation(spawn_pos).with_scale(Vec3::splat(1.0)),
+        Transform::from_translation(spawn_pos).with_scale(Vec3::splat(model_asset.scale)),
         CharacterMarker,
         CharacterController {
             speed: 18.0,
@@ -98,4 +101,36 @@ fn spawn_character(
         MovementInput::default(),
         CharacterState::default(),
     ));
+}
+
+/// When quality level changes, swap the character model and reset animation/tint state.
+fn swap_character_model_on_quality_change(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    model_asset: Res<CharacterModelAsset>,
+    characters: Query<(Entity, &Children, &Transform), With<CharacterMarker>>,
+) {
+    if !model_asset.is_changed() {
+        return;
+    }
+    for (entity, children, transform) in &characters {
+        info!("Swapping character model to: {}", model_asset.path);
+        // Despawn old scene children so the old mesh doesn't linger
+        for child in children.iter() {
+            commands.entity(child).despawn();
+        }
+        commands.entity(entity).insert((
+            SceneRoot(
+                asset_server.load(GltfAssetLabel::Scene(0).from_asset(model_asset.path)),
+            ),
+            Transform::from_translation(transform.translation)
+                .with_rotation(transform.rotation)
+                .with_scale(Vec3::splat(model_asset.scale)),
+        ));
+        // Remove animation and tint components so they re-run on the new model
+        commands.entity(entity).remove::<CharacterAnimations>();
+        commands
+            .entity(entity)
+            .remove::<crate::network::remote_players::LocalPlayerTinted>();
+    }
 }

@@ -3,6 +3,7 @@ use std::time::Duration;
 use bevy::prelude::*;
 
 use super::{CharacterAnimations, CharacterMarker, CharacterState};
+use crate::quality::CharacterModelAsset;
 
 /// Once the GLTF scene is spawned, find the AnimationPlayer child and set up
 /// the animation graph with Idle and Walk clips.
@@ -10,6 +11,7 @@ pub fn setup_character_animations(
     mut commands: Commands,
     mut animation_graphs: ResMut<Assets<AnimationGraph>>,
     asset_server: Res<AssetServer>,
+    model_asset: Res<CharacterModelAsset>,
     characters: Query<Entity, (With<CharacterMarker>, Without<CharacterAnimations>)>,
     children: Query<&Children>,
     player_query: Query<&AnimationPlayer>,
@@ -20,18 +22,18 @@ pub fn setup_character_animations(
             continue;
         };
 
-        // char_adventurer.glb animation indices (alphabetical order in GLTF):
+        // Animation indices (alphabetical order in GLTF, same for both LOD variants):
         //  4 = CharacterArmature|Idle
         // 16 = CharacterArmature|Run
         // 22 = CharacterArmature|Walk
         let idle_clip: Handle<AnimationClip> = asset_server.load(
-            GltfAssetLabel::Animation(4).from_asset("models/char_adventurer/char_adventurer.glb"),
+            GltfAssetLabel::Animation(4).from_asset(model_asset.path),
         );
         let walk_clip: Handle<AnimationClip> = asset_server.load(
-            GltfAssetLabel::Animation(22).from_asset("models/char_adventurer/char_adventurer.glb"),
+            GltfAssetLabel::Animation(22).from_asset(model_asset.path),
         );
         let run_clip: Handle<AnimationClip> = asset_server.load(
-            GltfAssetLabel::Animation(16).from_asset("models/char_adventurer/char_adventurer.glb"),
+            GltfAssetLabel::Animation(16).from_asset(model_asset.path),
         );
 
         let (graph, indices) = AnimationGraph::from_clips([idle_clip, walk_clip, run_clip]);

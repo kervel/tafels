@@ -55,7 +55,7 @@ fn spawn_vegetation(
     // on WebGL2 that persist even after stripping all PBR textures.
     #[cfg(not(target_arch = "wasm32"))]
     let rock_scene: Handle<Scene> =
-        asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/rock_07/rock_07_1k.gltf"));
+        asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/rock_07/rock_07_lod.glb"));
 
     let shrub_scene: Handle<Scene> =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/alpine_shrub.glb"));

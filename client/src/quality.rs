@@ -7,7 +7,66 @@ pub struct QualityPlugin;
 impl Plugin for QualityPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(QualitySettings::default())
-            .add_systems(Update, update_quality_settings);
+            .insert_resource(CharacterModelAsset::default())
+            .add_systems(Update, (update_quality_settings, debug_toggle_quality, update_character_model_asset).chain());
+    }
+}
+
+const CHARACTER_MODEL_HIGH: &str = "models/char_adventurer/char_adventurer.glb";
+const CHARACTER_MODEL_LOW: &str = "models/char_adventurer/char_adventurer_lod.glb";
+
+/// Holds the current character model path and scale, updated based on quality level.
+#[derive(Resource)]
+pub struct CharacterModelAsset {
+    pub path: &'static str,
+    pub scale: f32,
+}
+
+impl Default for CharacterModelAsset {
+    fn default() -> Self {
+        Self {
+            path: CHARACTER_MODEL_HIGH,
+            scale: 1.0,
+        }
+    }
+}
+
+fn debug_toggle_quality(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut settings: ResMut<QualitySettings>,
+) {
+    if keyboard.just_pressed(KeyCode::KeyP) {
+        settings.level = match settings.level {
+            QualityLevel::High => {
+                info!("Debug: forcing Low quality");
+                QualityLevel::Low
+            }
+            QualityLevel::Low => {
+                info!("Debug: forcing High quality");
+                QualityLevel::High
+            }
+        };
+        // Reset counters so auto-switching doesn't immediately undo the toggle
+        settings.consecutive_low = 0;
+        settings.consecutive_high = 0;
+    }
+}
+
+fn update_character_model_asset(
+    settings: Res<QualitySettings>,
+    mut model: ResMut<CharacterModelAsset>,
+) {
+    if !settings.is_changed() {
+        return;
+    }
+    let (new_path, new_scale) = match settings.level {
+        QualityLevel::High => (CHARACTER_MODEL_HIGH, 1.0),
+        // LOD model is 4.84m vs 1.86m; scale to match high-poly height
+        QualityLevel::Low => (CHARACTER_MODEL_LOW, 0.3836),
+    };
+    if model.path != new_path {
+        model.path = new_path;
+        model.scale = new_scale;
     }
 }
 

@@ -9,6 +9,7 @@ use crate::character::CharacterMarker;
 use crate::hud::GameFont;
 use crate::collision::VegetationCollider;
 use crate::game::GameState;
+use crate::quality::CharacterModelAsset;
 
 /// Color palette for distinguishing players.
 const PLAYER_COLORS: &[Color] = &[
@@ -86,6 +87,7 @@ fn spawn_remote_players(
     existing: Query<&RemotePlayer>,
     game_font: Res<GameFont>,
     connection_status: Res<ConnectionStatus>,
+    model_asset: Res<CharacterModelAsset>,
 ) {
     if connection_status.is_solo() {
         events.read().last(); // drain events
@@ -123,10 +125,12 @@ fn spawn_remote_players(
                 SceneRoot(
                     asset_server.load(
                         GltfAssetLabel::Scene(0)
-                            .from_asset("models/char_adventurer/char_adventurer.glb"),
+                            .from_asset(model_asset.path),
                     ),
                 ),
-                Transform::from_translation(pos).with_rotation(Quat::from_rotation_y(ps.yaw)),
+                Transform::from_translation(pos)
+                    .with_rotation(Quat::from_rotation_y(ps.yaw))
+                    .with_scale(Vec3::splat(model_asset.scale)),
             ))
             .with_children(|parent| {
                 // Floating nameplate above character
@@ -246,6 +250,7 @@ fn setup_remote_animations(
     mut commands: Commands,
     mut animation_graphs: ResMut<Assets<AnimationGraph>>,
     asset_server: Res<AssetServer>,
+    model_asset: Res<CharacterModelAsset>,
     remote_players: Query<Entity, (With<RemotePlayer>, Without<RemoteAnimations>)>,
     children: Query<&Children>,
     player_query: Query<&AnimationPlayer>,
@@ -257,13 +262,13 @@ fn setup_remote_animations(
 
         // Same animation clips as the local character
         let idle_clip: Handle<AnimationClip> = asset_server.load(
-            GltfAssetLabel::Animation(4).from_asset("models/char_adventurer/char_adventurer.glb"),
+            GltfAssetLabel::Animation(4).from_asset(model_asset.path),
         );
         let walk_clip: Handle<AnimationClip> = asset_server.load(
-            GltfAssetLabel::Animation(22).from_asset("models/char_adventurer/char_adventurer.glb"),
+            GltfAssetLabel::Animation(22).from_asset(model_asset.path),
         );
         let run_clip: Handle<AnimationClip> = asset_server.load(
-            GltfAssetLabel::Animation(16).from_asset("models/char_adventurer/char_adventurer.glb"),
+            GltfAssetLabel::Animation(16).from_asset(model_asset.path),
         );
 
         let (graph, indices) = AnimationGraph::from_clips([idle_clip, walk_clip, run_clip]);
