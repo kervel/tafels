@@ -29,6 +29,7 @@ impl Plugin for RemotePlayersPlugin {
             (
                 spawn_remote_players,
                 despawn_remote_players,
+                despawn_remote_players_on_solo,
                 update_remote_positions,
                 interpolate_remote_players,
                 setup_remote_animations,
@@ -84,7 +85,12 @@ fn spawn_remote_players(
     asset_server: Res<AssetServer>,
     existing: Query<&RemotePlayer>,
     game_font: Res<GameFont>,
+    connection_status: Res<ConnectionStatus>,
 ) {
+    if connection_status.is_solo() {
+        events.read().last(); // drain events
+        return;
+    }
     for RemotePlayerJoined(ps) in events.read() {
         info!(
             "Remote player {} joined at ({:.1}, {:.1}, {:.1})",
@@ -160,11 +166,28 @@ fn despawn_all_remote_players(mut commands: Commands, players: Query<Entity, Wit
     }
 }
 
+/// Despawn all remote players when entering solo mode.
+fn despawn_remote_players_on_solo(
+    mut commands: Commands,
+    status: Res<ConnectionStatus>,
+    players: Query<Entity, With<RemotePlayer>>,
+) {
+    if status.is_changed() && status.is_solo() {
+        for entity in &players {
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
 fn update_remote_positions(
     mut events: MessageReader<RemotePlayerUpdated>,
     mut players: Query<(&RemotePlayer, &Transform, &mut InterpolationState)>,
     status: Res<ConnectionStatus>,
 ) {
+    if status.is_solo() {
+        events.read().last(); // drain events
+        return;
+    }
     let my_id = match &*status {
         ConnectionStatus::Connected { my_player_id, .. } => Some(*my_player_id),
         _ => None,

@@ -296,6 +296,21 @@ async fn handle_client_message(player_id: u32, msg: ClientMessage, state: &AppSt
             };
             let _ = state.broadcast_tx.send(encode(&msg));
         }
+        ClientMessage::StartRoundNow => {
+            let mut world = state.world.lock().await;
+            if !matches!(world.round_state, RoundState::Lobby) {
+                return;
+            }
+            if !world.player_ready.contains(&player_id) {
+                return;
+            }
+            let total_ready = world.player_ready.len();
+            if total_ready >= 2 {
+                world.round_state = RoundState::Countdown(3.0);
+                let msg = ServerMessage::CountdownStart { seconds: 3 };
+                let _ = state.broadcast_tx.send(encode(&msg));
+            }
+        }
         ClientMessage::LeaveSolo => {
             let mut world = state.world.lock().await;
             world.player_solo.remove(&player_id);

@@ -109,6 +109,7 @@ pub enum ClientMessage {
     UpdateScore { coins: i32 },
     EnterSolo,
     LeaveSolo,
+    StartRoundNow,
 }
 
 pub fn encode<T: Serialize>(msg: &T) -> Vec<u8> {

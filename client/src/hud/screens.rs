@@ -12,7 +12,8 @@ pub struct ScreensPlugin;
 
 impl Plugin for ScreensPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Menu), spawn_menu_screen)
+        app.init_resource::<LobbyInfo>()
+            .add_systems(OnEnter(GameState::Menu), spawn_menu_screen)
             .add_systems(OnExit(GameState::Menu), despawn_menu)
             .add_systems(
                 Update,
@@ -34,6 +35,8 @@ impl Plugin for ScreensPlugin {
                 (
                     manage_lobby_screen,
                     handle_lobby_input,
+                    update_lobby_info,
+                    update_start_round_now_visibility,
                     manage_countdown_overlay,
                     manage_round_over_screen,
                 )
@@ -81,6 +84,15 @@ struct RoundOverScreen;
 
 #[derive(Component)]
 struct PlaySoloButton;
+
+#[derive(Component)]
+struct StartRoundNowButton;
+
+#[derive(Resource, Default)]
+struct LobbyInfo {
+    ready_count: usize,
+    local_ready: bool,
+}
 
 fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_font: Res<GameFont>) {
     let font = game_font.0.clone();
@@ -490,6 +502,34 @@ fn spawn_lobby_screen(commands: &mut Commands, font: &Handle<Font>) {
                         ));
                     });
 
+                    // Start Round Now button (hidden by default, shown when 2+ ready)
+                    row.spawn((
+                        StartRoundNowButton,
+                        Button,
+                        Node {
+                            width: Val::Px(200.0),
+                            height: Val::Px(56.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            border: UiRect::all(Val::Px(2.0)),
+                            display: Display::None,
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
+                        BorderColor::all(Color::srgb(1.0, 0.85, 0.0)),
+                    ))
+                    .with_children(|btn| {
+                        btn.spawn((
+                            Text::new("Start Now!"),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 24.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgb(1.0, 0.85, 0.0)),
+                        ));
+                    });
+
                     // Play Solo button
                     row.spawn((
                         PlaySoloButton,
@@ -523,6 +563,7 @@ fn spawn_lobby_screen(commands: &mut Commands, font: &Handle<Font>) {
 fn handle_lobby_input(
     ready_interaction: Query<&Interaction, (Changed<Interaction>, With<ReadyButton>)>,
     solo_interaction: Query<&Interaction, (Changed<Interaction>, With<PlaySoloButton>)>,
+    start_now_interaction: Query<&Interaction, (Changed<Interaction>, With<StartRoundNowButton>)>,
     ws: Option<Res<WsConnection>>,
     mut connection_status: ResMut<ConnectionStatus>,
     mut round_state: ResMut<MultiplayerRoundState>,
@@ -533,6 +574,14 @@ fn handle_lobby_input(
         if *inter == Interaction::Pressed {
             if let Some(ws) = &ws {
                 ws.send_binary(encode(&ClientMessage::Ready));
+            }
+        }
+    }
+
+    for inter in &start_now_interaction {
+        if *inter == Interaction::Pressed {
+            if let Some(ws) = &ws {
+                ws.send_binary(encode(&ClientMessage::StartRoundNow));
             }
         }
     }
@@ -566,6 +615,32 @@ fn handle_lobby_input(
             session.round_time_remaining = session.difficulty.round_time();
             session.round_time_limit = session.difficulty.round_time();
         }
+    }
+}
+
+fn update_lobby_info(
+    round_buf: Res<RoundMessageBuffer>,
+    connection_status: Res<ConnectionStatus>,
+    mut lobby_info: ResMut<LobbyInfo>,
+) {
+    if round_buf.lobby_states.is_empty() {
+        return;
+    }
+    let my_id = connection_status.my_player_id();
+    let non_solo: Vec<_> = round_buf.lobby_states.iter().filter(|p| !p.playing_solo).collect();
+    lobby_info.ready_count = non_solo.iter().filter(|p| p.ready).count();
+    lobby_info.local_ready = my_id
+        .map(|id| non_solo.iter().any(|p| p.player_id == id && p.ready))
+        .unwrap_or(false);
+}
+
+fn update_start_round_now_visibility(
+    lobby_info: Res<LobbyInfo>,
+    mut buttons: Query<&mut Node, With<StartRoundNowButton>>,
+) {
+    let show = lobby_info.ready_count >= 2 && lobby_info.local_ready;
+    for mut node in &mut buttons {
+        node.display = if show { Display::Flex } else { Display::None };
     }
 }
 
