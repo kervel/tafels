@@ -104,6 +104,14 @@ impl WsConnection {
         let mut sender = self.sender.lock().unwrap();
         sender.0.send(WsMessage::Binary(bytes));
     }
+
+    /// Drain and discard all pending messages from the WebSocket receive buffer.
+    /// Used when returning from solo GameOver to prevent stale multiplayer
+    /// round messages (RoundStart, RoundOver, etc.) from being processed.
+    pub fn drain_stale_messages(&self) {
+        let receiver = self.receiver.lock().unwrap();
+        while receiver.0.try_recv().is_some() {}
+    }
 }
 
 /// Send+Sync resource tracking connection state.

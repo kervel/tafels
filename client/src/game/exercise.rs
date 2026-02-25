@@ -12,7 +12,11 @@ impl Plugin for ExercisePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (tick_exercise_timer, tick_round_timer).run_if(in_state(super::GameState::Playing)),
+            tick_exercise_timer.run_if(super::gameplay_active),
+        )
+        .add_systems(
+            Update,
+            tick_round_timer.run_if(super::gameplay_active),
         );
     }
 }

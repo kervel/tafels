@@ -947,6 +947,7 @@ fn handle_game_over_input(
     mut next_state: ResMut<NextState<GameState>>,
     mut connection_status: ResMut<ConnectionStatus>,
     mut round_state: ResMut<MultiplayerRoundState>,
+    mut round_buf: ResMut<RoundMessageBuffer>,
     ws: Option<Res<WsConnection>>,
 ) {
     for interaction in &interaction {
@@ -955,8 +956,17 @@ fn handle_game_over_input(
                 // Return to lobby: send LeaveSolo, restore Connected state
                 if let ConnectionStatus::ConnectedSolo { my_player_id, my_color_index } = *connection_status {
                     if let Some(ws) = &ws {
+                        // Drain stale WebSocket messages that accumulated during
+                        // GameOver (when receive_messages wasn't running). Without
+                        // this, stale RoundStart/RoundOver messages from other
+                        // players' rounds get processed as if we're in multiplayer.
+                        ws.drain_stale_messages();
+
                         ws.send_binary(encode(&ClientMessage::LeaveSolo));
                     }
+                    // Clear round message buffer to prevent stale state transitions
+                    *round_buf = RoundMessageBuffer::default();
+
                     *connection_status = ConnectionStatus::Connected {
                         my_player_id,
                         my_color_index,

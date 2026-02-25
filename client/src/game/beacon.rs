@@ -39,7 +39,8 @@ impl Plugin for BeaconPlugin {
                 send_answer_to_server,
             )
                 .run_if(in_state(GameState::Playing)),
-        );
+        )
+        .add_systems(OnExit(GameState::Playing), cleanup_exercises);
     }
 }
 
@@ -903,4 +904,23 @@ fn send_answer_to_server(
             break;
         }
     }
+}
+
+/// Despawn all exercise-related entities when leaving the Playing state.
+/// Without this, beacons/panels/poles/texts persist across GameOver→Playing
+/// transitions, causing visual artifacts (old exercises visible behind lobby).
+fn cleanup_exercises(
+    mut commands: Commands,
+    exercises: Query<Entity, With<ExerciseId>>,
+    panels: Query<Entity, With<super::panels::AnswerPanel>>,
+    poles: Query<Entity, With<super::panels::PanelPole>>,
+    question_texts: Query<Entity, With<super::panels::QuestionText>>,
+    timer_texts: Query<Entity, With<super::panels::TimerText>>,
+) {
+    for entity in exercises.iter().chain(panels.iter()).chain(poles.iter())
+        .chain(question_texts.iter()).chain(timer_texts.iter())
+    {
+        commands.entity(entity).despawn();
+    }
+    commands.remove_resource::<super::scoring::PendingAnswer>();
 }

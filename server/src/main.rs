@@ -330,12 +330,13 @@ async fn cleanup_player(player_id: u32, state: &AppState) {
     let msg = ServerMessage::PlayerLeft { player_id };
     let _ = state.broadcast_tx.send(encode(&msg));
 
-    // If we're in Lobby, broadcast updated lobby state
-    if matches!(world.round_state, RoundState::Lobby) {
-        let lobby_players = build_lobby_players(&world);
-        let msg = ServerMessage::LobbyState {
-            players: lobby_players,
-        };
-        let _ = state.broadcast_tx.send(encode(&msg));
-    }
+    // Always broadcast updated lobby state so ghost players from stale
+    // connections (e.g. browser refresh) are removed from lobby lists.
+    // Previously this only ran during Lobby state, leaving ghost players
+    // visible if the disconnect happened during Playing/Countdown/RoundOver.
+    let lobby_players = build_lobby_players(&world);
+    let msg = ServerMessage::LobbyState {
+        players: lobby_players,
+    };
+    let _ = state.broadcast_tx.send(encode(&msg));
 }
