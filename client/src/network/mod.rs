@@ -10,7 +10,7 @@ use tafels_shared::protocol::{
 };
 
 use crate::character::{CharacterMarker, CharacterState};
-use crate::game::{GameSession, GameState, Leaderboard, LeaderboardEntry, MultiplayerRoundState};
+use crate::game::{ActiveExercises, GameSession, GameState, Leaderboard, LeaderboardEntry, MultiplayerRoundState};
 
 /// For WASM builds, derive WebSocket URL from the page's origin at runtime.
 #[cfg(target_arch = "wasm32")]
@@ -540,6 +540,7 @@ fn handle_round_events(
     mut leaderboard: ResMut<Leaderboard>,
     mut round_buf: ResMut<RoundMessageBuffer>,
     mut session: ResMut<GameSession>,
+    mut active_exercises: ResMut<ActiveExercises>,
     status: Res<ConnectionStatus>,
 ) {
     if round_buf.lobby_dirty {
@@ -568,6 +569,18 @@ fn handle_round_events(
     if let Some(round_time) = round_buf.round_start.take() {
         if !status.is_solo() {
             *round_state = MultiplayerRoundState::Playing;
+            // Fresh session for every multiplayer round; the previous round's
+            // coins/counters must not carry over (0 coins would end the new
+            // round instantly).
+            session.current_index = 0;
+            session.coins = 10;
+            session.correct_count = 0;
+            session.wrong_count = 0;
+            session.timeout_count = 0;
+            session.combo = 0;
+            session.max_combo = 0;
+            active_exercises.total_engaged = 0;
+            active_exercises.cooldown_timer = 0.0;
             // Sync the display timer from the server's authoritative round time
             session.round_time_remaining = round_time;
             session.round_time_limit = round_time;

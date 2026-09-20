@@ -14,11 +14,13 @@ impl Plugin for ScoringPlugin {
         app.add_systems(
             Update,
             (
-                process_pending_answer,
-                check_game_over,
-                check_round_complete,
-            )
-                .run_if(in_state(GameState::Playing)),
+                process_pending_answer.run_if(in_state(GameState::Playing)),
+                // Only end the game during actual play: in the multiplayer
+                // lobby/countdown/round-over screens the session may hold
+                // stale coins/engaged counts, and a GameOver transition there
+                // leaves the lobby UI visible but its input systems stopped.
+                (check_game_over, check_round_complete).run_if(super::gameplay_active),
+            ),
         );
     }
 }
@@ -245,5 +247,57 @@ fn check_round_complete(
     if active_exercises.total_engaged >= session.total_exercises && session.coins > 0 {
         // Round complete - go to game over screen (will show stats)
         next_state.set(GameState::GameOver);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::{ActiveExercises, MultiplayerRoundState};
+
+    fn app_in_playing(coins: i32, engaged: u32, round: MultiplayerRoundState) -> App {
+        let mut app = App::new();
+        app.add_plugins(bevy::state::app::StatesPlugin)
+            .init_state::<GameState>()
+            .add_message::<ParticleBurstEvent>()
+            .insert_resource(GameSession {
+                coins,
+                ..default()
+            })
+            .insert_resource(ActiveExercises {
+                total_engaged: engaged,
+                ..default()
+            })
+            .insert_resource(round)
+            .add_plugins(ScoringPlugin);
+        app.world_mut()
+            .resource_mut::<NextState<GameState>>()
+            .set(GameState::Playing);
+        app.update(); // apply transition Menu -> Playing
+        app.update(); // run Playing systems
+        app.update(); // apply any GameOver transition they queued
+        app
+    }
+
+    fn state(app: &App) -> GameState {
+        *app.world().resource::<State<GameState>>().get()
+    }
+
+    #[test]
+    fn zero_coins_in_multiplayer_lobby_does_not_trigger_game_over() {
+        let app = app_in_playing(0, 0, MultiplayerRoundState::Lobby);
+        assert_eq!(state(&app), GameState::Playing);
+    }
+
+    #[test]
+    fn round_complete_in_multiplayer_round_over_does_not_trigger_game_over() {
+        let app = app_in_playing(10, 30, MultiplayerRoundState::RoundOver);
+        assert_eq!(state(&app), GameState::Playing);
+    }
+
+    #[test]
+    fn zero_coins_in_solo_play_triggers_game_over() {
+        let app = app_in_playing(0, 0, MultiplayerRoundState::None);
+        assert_eq!(state(&app), GameState::GameOver);
     }
 }
