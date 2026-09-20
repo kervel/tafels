@@ -122,7 +122,7 @@ fn spawn_remote_players(
                     animation: ps.animation,
                 },
                 VegetationCollider { radius: 0.3 },
-                SceneRoot(
+                WorldAssetRoot(
                     asset_server.load(
                         GltfAssetLabel::Scene(0)
                             .from_asset(model_asset.path),
@@ -138,8 +138,8 @@ fn spawn_remote_players(
                     RemotePlayerNameplate,
                     Text2d::new(format!("Player {}", ps.player_id)),
                     TextFont {
-                        font: game_font.0.clone(),
-                        font_size: 24.0,
+                        font: game_font.0.clone().into(),
+                        font_size: FontSize::Px(24.0),
                         ..default()
                     },
                     TextColor(Color::WHITE),

@@ -27,13 +27,13 @@ pub struct ExerciseData {
 }
 
 pub fn generate_exercise(difficulty: &Difficulty) -> ExerciseData {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let (table_range, timer) = difficulty.config();
 
-    let a = rng.r#gen_range(table_range.clone());
-    let b = rng.r#gen_range(table_range.clone());
+    let a = rng.random_range(table_range.clone());
+    let b = rng.random_range(table_range.clone());
 
-    let (operation, operand_a, operand_b, correct_answer) = if rng.r#gen::<bool>() {
+    let (operation, operand_a, operand_b, correct_answer) = if rng.random::<bool>() {
         (Operation::Multiply, a, b, a * b)
     } else {
         let product = a * b;
@@ -77,7 +77,7 @@ pub fn generate_exercise(difficulty: &Difficulty) -> ExerciseData {
         distractors[2],
     ];
     for i in (1..4).rev() {
-        let j = rng.r#gen_range(0..=i);
+        let j = rng.random_range(0..=i);
         choices.swap(i, j);
     }
 

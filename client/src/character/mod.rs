@@ -89,7 +89,7 @@ fn spawn_character(
     };
 
     commands.spawn((
-        SceneRoot(asset_server.load(
+        WorldAssetRoot(asset_server.load(
             GltfAssetLabel::Scene(0).from_asset(model_asset.path),
         )),
         Transform::from_translation(spawn_pos).with_scale(Vec3::splat(model_asset.scale)),
@@ -120,7 +120,7 @@ fn swap_character_model_on_quality_change(
             commands.entity(child).despawn();
         }
         commands.entity(entity).insert((
-            SceneRoot(
+            WorldAssetRoot(
                 asset_server.load(GltfAssetLabel::Scene(0).from_asset(model_asset.path)),
             ),
             Transform::from_translation(transform.translation)

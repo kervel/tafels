@@ -75,7 +75,7 @@ fn spawn_camera(
         Transform::from_translation(Vec3::new(start_x, start_y, start_z))
             .looking_at(Vec3::new(0.0, center_height + 1.5, 0.0), Vec3::Y),
         Skybox {
-            image: skybox_handle,
+            image: Some(skybox_handle),
             brightness: 500.0,
             rotation: Quat::IDENTITY,
         },

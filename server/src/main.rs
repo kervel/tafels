@@ -87,14 +87,14 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     println!("Player {player_id} connected");
 
     // Send WorldSnapshot to the new player
-    if ws_tx.send(Message::Binary(snapshot_bytes)).await.is_err() {
+    if ws_tx.send(Message::Binary(snapshot_bytes.into())).await.is_err() {
         cleanup_player(player_id, &state).await;
         return;
     }
 
     // Send current round state to late joiners
     for msg_bytes in round_state_msgs {
-        if ws_tx.send(Message::Binary(msg_bytes)).await.is_err() {
+        if ws_tx.send(Message::Binary(msg_bytes.into())).await.is_err() {
             cleanup_player(player_id, &state).await;
             return;
         }
@@ -107,7 +107,7 @@ async fn handle_socket(socket: WebSocket, state: AppState) {
     let _write_state = state.clone();
     let mut write_task = tokio::spawn(async move {
         while let Ok(bytes) = broadcast_rx.recv().await {
-            if ws_tx.send(Message::Binary(bytes)).await.is_err() {
+            if ws_tx.send(Message::Binary(bytes.into())).await.is_err() {
                 break;
             }
         }

@@ -108,8 +108,8 @@ fn spawn_hud(mut commands: Commands, game_font: Res<GameFont>) {
                         CoinDisplay,
                         Text::new("Coins: 10"),
                         TextFont {
-                            font: game_font.0.clone(),
-                            font_size: 28.0,
+                            font: game_font.0.clone().into(),
+                            font_size: FontSize::Px(28.0),
                             ..default()
                         },
                         TextColor(Color::srgb(1.0, 0.85, 0.0)),
@@ -120,8 +120,8 @@ fn spawn_hud(mut commands: Commands, game_font: Res<GameFont>) {
                         RoundTimerText,
                         Text::new("3:00"),
                         TextFont {
-                            font: game_font.0.clone(),
-                            font_size: 26.0,
+                            font: game_font.0.clone().into(),
+                            font_size: FontSize::Px(26.0),
                             ..default()
                         },
                         TextColor(Color::srgb(0.2, 0.9, 0.2)),
@@ -141,8 +141,8 @@ fn spawn_hud(mut commands: Commands, game_font: Res<GameFont>) {
                                 ComboDisplay,
                                 Text::new(""),
                                 TextFont {
-                                    font: game_font.0.clone(),
-                                    font_size: 26.0,
+                                    font: game_font.0.clone().into(),
+                                    font_size: FontSize::Px(26.0),
                                     ..default()
                                 },
                                 TextColor(Color::srgb(1.0, 0.6, 0.0)),
@@ -153,8 +153,8 @@ fn spawn_hud(mut commands: Commands, game_font: Res<GameFont>) {
                                 ProgressDisplay,
                                 Text::new("0 / 20"),
                                 TextFont {
-                                    font: game_font.0.clone(),
-                                    font_size: 22.0,
+                                    font: game_font.0.clone().into(),
+                                    font_size: FontSize::Px(22.0),
                                     ..default()
                                 },
                                 TextColor(Color::WHITE),
@@ -167,8 +167,8 @@ fn spawn_hud(mut commands: Commands, game_font: Res<GameFont>) {
                 ConnectionIndicator,
                 Text::new("Offline"),
                 TextFont {
-                    font: game_font.0.clone(),
-                    font_size: 16.0,
+                    font: game_font.0.clone().into(),
+                    font_size: FontSize::Px(16.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.3, 0.3)),
@@ -230,8 +230,8 @@ fn spawn_hud(mut commands: Commands, game_font: Res<GameFont>) {
                     lb.spawn((
                         Text::new("Leaderboard"),
                         TextFont {
-                            font: game_font.0.clone(),
-                            font_size: 18.0,
+                            font: game_font.0.clone().into(),
+                            font_size: FontSize::Px(18.0),
                             ..default()
                         },
                         TextColor(Color::srgb(1.0, 0.85, 0.0)),
@@ -395,8 +395,8 @@ fn show_quality_notification(
         FeedbackPopup { timer: 3.0 },
         Text::new(msg),
         TextFont {
-            font: game_font.0.clone(),
-            font_size: 28.0,
+            font: game_font.0.clone().into(),
+            font_size: FontSize::Px(28.0),
             ..default()
         },
         TextColor(Color::srgb(0.9, 0.7, 0.3)),
@@ -481,8 +481,8 @@ fn update_leaderboard(
                     LeaderboardEntryText,
                     Text::new(label),
                     TextFont {
-                        font: game_font.0.clone(),
-                        font_size: 15.0,
+                        font: game_font.0.clone().into(),
+                        font_size: FontSize::Px(15.0),
                         ..default()
                     },
                     TextColor(color),

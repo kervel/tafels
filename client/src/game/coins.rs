@@ -71,8 +71,8 @@ fn tick_pending_spawns(
             };
             let coin_y = ground_y + 1.0;
 
-            let mut rng = rand::thread_rng();
-            let phase = rng.r#gen_range(0.0..std::f32::consts::TAU);
+            let mut rng = rand::rng();
+            let phase = rng.random_range(0.0..std::f32::consts::TAU);
 
             let mesh = meshes.add(Torus::new(0.25, 0.4));
             let material = materials.add(StandardMaterial {
@@ -111,7 +111,7 @@ fn tick_pending_spawns(
                             color: Color::srgb(1.0, 0.85, 0.2),
                             intensity: 400_000.0,
                             range: 8.0,
-                            shadows_enabled: false,
+                            shadow_maps_enabled: false,
                             ..default()
                         },
                         Transform::IDENTITY,

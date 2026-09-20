@@ -308,7 +308,7 @@ pub fn spawn_answer_panels(
     let arc_radius = 10.0; // wider spread
     let panel_height = 1.4;
     let pole_top_margin = 0.1;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let pole_material = materials.add(StandardMaterial {
         base_color: Color::srgb(0.4, 0.4, 0.4),
@@ -320,8 +320,8 @@ pub fn spawn_answer_panels(
         let t = (i as f32 - 1.5) / 1.5;
 
         // Base position + random offset
-        let offset_x = rng.r#gen_range(-1.5..1.5_f32);
-        let offset_z = rng.r#gen_range(-1.5..1.5_f32);
+        let offset_x = rng.random_range(-1.5..1.5_f32);
+        let offset_z = rng.random_range(-1.5..1.5_f32);
         let x = center.x + right.x * t * arc_radius + offset_x;
         let z = center.z + right.z * t * arc_radius + offset_z;
         let ground_y = crate::terrain::heightmap::sample_height(heightmap, x, z);
@@ -331,7 +331,7 @@ pub fn spawn_answer_panels(
         let panel_pos = Vec3::new(x, panel_center_y, z);
 
         // Random Y rotation jitter (+-15 degrees) around the base facing direction
-        let yaw_jitter = rng.r#gen_range(-0.26..0.26_f32);
+        let yaw_jitter = rng.random_range(-0.26..0.26_f32);
         let jittered_rotation = panel_rotation * Quat::from_rotation_y(yaw_jitter);
 
         let panel_transform = Transform {
@@ -400,7 +400,7 @@ pub fn spawn_answer_panels(
                 color: panel_light_color,
                 intensity: light_intensity,
                 range: 20.0,
-                shadows_enabled: false,
+                shadow_maps_enabled: false,
                 ..default()
             },
             Transform::from_translation(Vec3::new(0.0, -0.5, 0.5)),

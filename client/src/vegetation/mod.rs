@@ -44,23 +44,23 @@ fn spawn_vegetation(
     let positions = placement::generate_vegetation_positions(&terrain.heightmap, 0.50, 12345);
 
     // Game-ready low-poly models from Poly Pizza (CC0, ~1-3K triangles each)
-    let spruce_scene: Handle<Scene> =
+    let spruce_scene: Handle<WorldAsset> =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/pp_spruce2/pp_spruce2.glb"));
-    let pine_scene: Handle<Scene> =
+    let pine_scene: Handle<WorldAsset> =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/polypizza_pine/pine.glb"));
-    let conifer_scene: Handle<Scene> = asset_server
+    let conifer_scene: Handle<WorldAsset> = asset_server
         .load(GltfAssetLabel::Scene(0).from_asset("models/pp_conifer2/pp_conifer2.glb"));
 
     // Poly Haven rock - only on native; causes rendering artifacts (bright flashes)
     // on WebGL2 that persist even after stripping all PBR textures.
     #[cfg(not(target_arch = "wasm32"))]
-    let rock_scene: Handle<Scene> =
+    let rock_scene: Handle<WorldAsset> =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/rock_07/rock_07_lod.glb"));
 
-    let shrub_scene: Handle<Scene> =
+    let shrub_scene: Handle<WorldAsset> =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/alpine_shrub.glb"));
 
-    let dirt_scene: Handle<Scene> =
+    let dirt_scene: Handle<WorldAsset> =
         asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/dirt_patch.glb"));
 
     for instance in positions {
@@ -103,7 +103,7 @@ fn spawn_vegetation(
         };
 
         let mut entity = commands.spawn((
-            SceneRoot(scene),
+            WorldAssetRoot(scene),
             Transform::from_translation(instance.position)
                 .with_rotation(base_rotation)
                 .with_scale(Vec3::splat(instance.scale)),

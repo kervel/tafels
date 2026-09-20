@@ -8,9 +8,9 @@ name = "3dt"
 path = "src/main.rs"
 
 [dependencies]
-bevy = { version = "0.18", features = ["jpeg", "bevy_dev_tools"] }
+bevy = { version = "0.19", features = ["jpeg", "bevy_dev_tools"] }
 noise = "0.9"
-rand = "0.8"
+rand = "0.10"
 tafels-shared = { path = "../shared" }
 ewebsock = "0.8"
 postcard = { version = "1", features = ["alloc"] }
@@ -18,5 +18,6 @@ postcard = { version = "1", features = ["alloc"] }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
 getrandom_0_3 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+getrandom_0_4 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
 wasm-bindgen = "0.2"
 web-sys = { version = "0.3", features = ["Window", "Location", "Navigator", "Document", "HtmlInputElement", "HtmlElement", "Element", "EventTarget", "InputEvent"] }

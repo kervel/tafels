@@ -114,8 +114,8 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_fon
             parent.spawn((
                 Text::new("Math Tables Game"),
                 TextFont {
-                    font: font.clone(),
-                    font_size: 52.0,
+                    font: font.clone().into(),
+                    font_size: FontSize::Px(52.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.3, 1.0, 0.5)),
@@ -129,8 +129,8 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_fon
             parent.spawn((
                 Text::new("Enter your name:"),
                 TextFont {
-                    font: font.clone(),
-                    font_size: 22.0,
+                    font: font.clone().into(),
+                    font_size: FontSize::Px(22.0),
                     ..default()
                 },
                 TextColor(Color::srgba(0.8, 0.8, 0.8, 0.9)),
@@ -151,8 +151,8 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_fon
                 Button,
                 Text::new(display_name),
                 TextFont {
-                    font: font.clone(),
-                    font_size: 32.0,
+                    font: font.clone().into(),
+                    font_size: FontSize::Px(32.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.3, 1.0, 0.5)),
@@ -174,8 +174,8 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_fon
             parent.spawn((
                 Text::new("Choose Difficulty"),
                 TextFont {
-                    font: font.clone(),
-                    font_size: 28.0,
+                    font: font.clone().into(),
+                    font_size: FontSize::Px(28.0),
                     ..default()
                 },
                 TextColor(Color::WHITE),
@@ -215,8 +215,8 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_fon
                         btn.spawn((
                             Text::new(diff.label()),
                             TextFont {
-                                font: font.clone(),
-                                font_size: 26.0,
+                                font: font.clone().into(),
+                                font_size: FontSize::Px(26.0),
                                 ..default()
                             },
                             TextColor(color),
@@ -225,8 +225,8 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_fon
                         btn.spawn((
                             Text::new(diff.description()),
                             TextFont {
-                                font: font.clone(),
-                                font_size: 16.0,
+                                font: font.clone().into(),
+                                font_size: FontSize::Px(16.0),
                                 ..default()
                             },
                             TextColor(Color::srgba(0.8, 0.8, 0.8, 0.9)),
@@ -410,8 +410,8 @@ fn manage_lobby_screen(
                             LobbyPlayerList,
                             Text::new(format!("{} {}", p.name, status)),
                             TextFont {
-                                font: font.clone(),
-                                font_size: 22.0,
+                                font: font.clone().into(),
+                                font_size: FontSize::Px(22.0),
                                 ..default()
                             },
                             TextColor(color),
@@ -453,8 +453,8 @@ fn spawn_lobby_screen(commands: &mut Commands, font: &Handle<Font>) {
             parent.spawn((
                 Text::new("Lobby - Waiting for players"),
                 TextFont {
-                    font: font.clone(),
-                    font_size: 36.0,
+                    font: font.clone().into(),
+                    font_size: FontSize::Px(36.0),
                     ..default()
                 },
                 TextColor(Color::srgb(0.3, 1.0, 0.5)),
@@ -494,8 +494,8 @@ fn spawn_lobby_screen(commands: &mut Commands, font: &Handle<Font>) {
                         btn.spawn((
                             Text::new("Ready!"),
                             TextFont {
-                                font: font.clone(),
-                                font_size: 24.0,
+                                font: font.clone().into(),
+                                font_size: FontSize::Px(24.0),
                                 ..default()
                             },
                             TextColor(Color::srgb(0.3, 1.0, 0.5)),
@@ -522,8 +522,8 @@ fn spawn_lobby_screen(commands: &mut Commands, font: &Handle<Font>) {
                         btn.spawn((
                             Text::new("Start Now!"),
                             TextFont {
-                                font: font.clone(),
-                                font_size: 24.0,
+                                font: font.clone().into(),
+                                font_size: FontSize::Px(24.0),
                                 ..default()
                             },
                             TextColor(Color::srgb(1.0, 0.85, 0.0)),
@@ -549,8 +549,8 @@ fn spawn_lobby_screen(commands: &mut Commands, font: &Handle<Font>) {
                         btn.spawn((
                             Text::new("Play Solo"),
                             TextFont {
-                                font: font.clone(),
-                                font_size: 24.0,
+                                font: font.clone().into(),
+                                font_size: FontSize::Px(24.0),
                                 ..default()
                             },
                             TextColor(Color::srgb(0.4, 0.7, 1.0)),
@@ -677,8 +677,8 @@ fn manage_countdown_overlay(
                             CountdownText,
                             Text::new(format!("{}", display)),
                             TextFont {
-                                font: font.clone(),
-                                font_size: 120.0,
+                                font: font.clone().into(),
+                                font_size: FontSize::Px(120.0),
                                 ..default()
                             },
                             TextColor(Color::srgb(1.0, 1.0, 1.0)),
@@ -742,8 +742,8 @@ fn manage_round_over_screen(
                 parent.spawn((
                     Text::new("Round Over!"),
                     TextFont {
-                        font: font.clone(),
-                        font_size: 48.0,
+                        font: font.clone().into(),
+                        font_size: FontSize::Px(48.0),
                         ..default()
                     },
                     TextColor(Color::srgb(1.0, 0.85, 0.0)),
@@ -756,8 +756,8 @@ fn manage_round_over_screen(
                 parent.spawn((
                     Text::new("Final Standings"),
                     TextFont {
-                        font: font.clone(),
-                        font_size: 28.0,
+                        font: font.clone().into(),
+                        font_size: FontSize::Px(28.0),
                         ..default()
                     },
                     TextColor(Color::WHITE),
@@ -791,8 +791,8 @@ fn manage_round_over_screen(
                     parent.spawn((
                         Text::new(label),
                         TextFont {
-                            font: font.clone(),
-                            font_size: 24.0,
+                            font: font.clone().into(),
+                            font_size: FontSize::Px(24.0),
                             ..default()
                         },
                         TextColor(color),
@@ -806,8 +806,8 @@ fn manage_round_over_screen(
                 parent.spawn((
                     Text::new("Next round starting soon..."),
                     TextFont {
-                        font: font.clone(),
-                        font_size: 18.0,
+                        font: font.clone().into(),
+                        font_size: FontSize::Px(18.0),
                         ..default()
                     },
                     TextColor(Color::srgba(0.7, 0.7, 0.7, 0.8)),
@@ -860,8 +860,8 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, con
             parent.spawn((
                 Text::new(title),
                 TextFont {
-                    font: font.clone(),
-                    font_size: 48.0,
+                    font: font.clone().into(),
+                    font_size: FontSize::Px(48.0),
                     ..default()
                 },
                 TextColor(if is_round_complete {
@@ -889,8 +889,8 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, con
             parent.spawn((
                 Text::new(stats),
                 TextFont {
-                    font: font.clone(),
-                    font_size: 24.0,
+                    font: font.clone().into(),
+                    font_size: FontSize::Px(24.0),
                     ..default()
                 },
                 TextColor(Color::WHITE),
@@ -926,8 +926,8 @@ fn spawn_game_over_screen(mut commands: Commands, session: Res<GameSession>, con
                     btn.spawn((
                         Text::new(button_text),
                         TextFont {
-                            font: font.clone(),
-                            font_size: 24.0,
+                            font: font.clone().into(),
+                            font_size: FontSize::Px(24.0),
                             ..default()
                         },
                         TextColor(Color::srgb(0.3, 1.0, 0.5)),

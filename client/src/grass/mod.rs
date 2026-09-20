@@ -44,10 +44,10 @@ fn create_grass_mesh(blade_count: usize, rng: &mut StdRng) -> Mesh {
     let spread = 0.06; // how far blades spread from center
 
     for i in 0..blade_count {
-        let rot = rng.r#gen_range(0.0..std::f32::consts::TAU);
-        let ox = rng.r#gen_range(-spread..spread);
-        let oz = rng.r#gen_range(-spread..spread);
-        let h = rng.r#gen_range(0.25..0.50);
+        let rot = rng.random_range(0.0..std::f32::consts::TAU);
+        let ox = rng.random_range(-spread..spread);
+        let oz = rng.random_range(-spread..spread);
+        let h = rng.random_range(0.25..0.50);
         let w = 0.008; // half-width — slender blade
         let mid_y = h * 0.55;
         let cos_r = rot.cos();
@@ -131,15 +131,15 @@ fn spawn_grass(
 
     for gz in 0..grid_count {
         for gx in 0..grid_count {
-            if rng.r#gen::<f32>() > density {
+            if rng.random::<f32>() > density {
                 continue;
             }
 
             let cx = -usable + (gx as f32 + 0.5) * cell_size;
             let cz = -usable + (gz as f32 + 0.5) * cell_size;
             let jitter = cell_size * 0.45;
-            let x = cx + rng.r#gen_range(-jitter..jitter);
-            let z = cz + rng.r#gen_range(-jitter..jitter);
+            let x = cx + rng.random_range(-jitter..jitter);
+            let z = cz + rng.random_range(-jitter..jitter);
 
             if x.abs() > usable || z.abs() > usable {
                 continue;
@@ -152,10 +152,10 @@ fn spawn_grass(
                 continue;
             }
 
-            let variant_idx = rng.r#gen_range(0..variants.len());
-            let scale_xz = rng.r#gen_range(0.6..2.0);
-            let scale_y = rng.r#gen_range(0.5..2.5);
-            let yaw = rng.r#gen_range(0.0..std::f32::consts::TAU);
+            let variant_idx = rng.random_range(0..variants.len());
+            let scale_xz = rng.random_range(0.6..2.0);
+            let scale_y = rng.random_range(0.5..2.5);
+            let yaw = rng.random_range(0.0..std::f32::consts::TAU);
             let base_rotation = Quat::from_rotation_y(yaw);
 
             commands.spawn((
@@ -166,7 +166,7 @@ fn spawn_grass(
                     .with_scale(Vec3::new(scale_xz, scale_y, scale_xz)),
                 GrassTuft,
                 WindSway {
-                    phase: rng.r#gen_range(0.0..std::f32::consts::TAU),
+                    phase: rng.random_range(0.0..std::f32::consts::TAU),
                     base_rotation,
                     strength: 0.12,
                 },

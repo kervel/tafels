@@ -122,7 +122,7 @@ fn spawn_ball(
                 color: Color::srgb(1.0, 0.4, 0.2),
                 intensity: 800_000.0,
                 range: 25.0,
-                shadows_enabled: false,
+                shadow_maps_enabled: false,
                 ..default()
             },
             Transform::IDENTITY,
@@ -177,7 +177,7 @@ fn spawn_remote_ball(
                     color: Color::srgb(0.3, 0.5, 1.0),
                     intensity: 800_000.0,
                     range: 25.0,
-                    shadows_enabled: false,
+                    shadow_maps_enabled: false,
                     ..default()
                 },
                 Transform::IDENTITY,

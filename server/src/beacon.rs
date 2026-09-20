@@ -94,15 +94,15 @@ impl BeaconManager {
         // Build beacons synchronously (no await) so thread_rng is safe
         let mut new_beacons = Vec::new();
         {
-            let mut rng = rand::thread_rng();
+            let mut rng = rand::rng();
             let mut all_positions = existing_positions;
 
             for (player_id, px, pz) in &players_needing_beacons {
                 // Try to find a valid spawn position near this player
                 let mut spawn_pos = None;
                 for _ in 0..20 {
-                    let angle = rng.gen_range(0.0..std::f32::consts::TAU);
-                    let dist = rng.gen_range(30.0..60.0_f32);
+                    let angle = rng.random_range(0.0..std::f32::consts::TAU);
+                    let dist = rng.random_range(30.0..60.0_f32);
                     let cx = px + angle.cos() * dist;
                     let cz = pz + angle.sin() * dist;
 

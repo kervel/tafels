@@ -114,28 +114,28 @@ pub fn handle_burst_events(
                 color: event.color,
                 intensity: light_intensity,
                 range: 30.0,
-                shadows_enabled: false,
+                shadow_maps_enabled: false,
                 ..default()
             },
             Transform::from_translation(event.position),
         ));
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         for _ in 0..count {
             let dir = Vec3::new(
-                rng.r#gen_range(-1.0..1.0_f32),
-                rng.r#gen_range(0.2..1.0_f32),
-                rng.r#gen_range(-1.0..1.0_f32),
+                rng.random_range(-1.0..1.0_f32),
+                rng.random_range(0.2..1.0_f32),
+                rng.random_range(-1.0..1.0_f32),
             )
             .normalize_or_zero();
 
-            let speed = event.speed * rng.r#gen_range(0.5..1.5_f32);
+            let speed = event.speed * rng.random_range(0.5..1.5_f32);
 
             commands.spawn((
                 Particle {
                     velocity: dir * speed,
-                    lifetime: event.lifetime * rng.r#gen_range(0.6..1.0_f32),
+                    lifetime: event.lifetime * rng.random_range(0.6..1.0_f32),
                     max_lifetime: event.lifetime,
                     style: ParticleStyle::Burst,
                 },
@@ -208,7 +208,7 @@ pub fn handle_styled_events(
                         color: event.color,
                         intensity: 1_500_000.0,
                         range: 25.0,
-                        shadows_enabled: false,
+                        shadow_maps_enabled: false,
                         ..default()
                     },
                     Transform::from_translation(event.position),
@@ -217,66 +217,66 @@ pub fn handle_styled_events(
             _ => {}
         }
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         for _ in 0..count {
             let (vel, lt) = match event.style {
                 ParticleStyle::Burst => {
                     let dir = Vec3::new(
-                        rng.r#gen_range(-1.0..1.0_f32),
-                        rng.r#gen_range(0.2..1.0_f32),
-                        rng.r#gen_range(-1.0..1.0_f32),
+                        rng.random_range(-1.0..1.0_f32),
+                        rng.random_range(0.2..1.0_f32),
+                        rng.random_range(-1.0..1.0_f32),
                     )
                     .normalize_or_zero();
                     (
-                        dir * event.speed * rng.r#gen_range(0.5..1.5_f32),
-                        event.lifetime * rng.r#gen_range(0.6..1.0_f32),
+                        dir * event.speed * rng.random_range(0.5..1.5_f32),
+                        event.lifetime * rng.random_range(0.6..1.0_f32),
                     )
                 }
                 ParticleStyle::RisingSparkle => {
                     // Gentle upward drift with horizontal wobble
                     let vel = Vec3::new(
-                        rng.r#gen_range(-0.8..0.8_f32),
-                        event.speed * rng.r#gen_range(0.6..1.2_f32),
-                        rng.r#gen_range(-0.8..0.8_f32),
+                        rng.random_range(-0.8..0.8_f32),
+                        event.speed * rng.random_range(0.6..1.2_f32),
+                        rng.random_range(-0.8..0.8_f32),
                     );
-                    (vel, event.lifetime * rng.r#gen_range(0.5..1.0_f32))
+                    (vel, event.lifetime * rng.random_range(0.5..1.0_f32))
                 }
                 ParticleStyle::FallingEmber => {
                     // Drift outward and downward like dissolving embers
-                    let angle = rng.r#gen_range(0.0..std::f32::consts::TAU);
-                    let outward = rng.r#gen_range(0.5..2.0_f32);
+                    let angle = rng.random_range(0.0..std::f32::consts::TAU);
+                    let outward = rng.random_range(0.5..2.0_f32);
                     let vel = Vec3::new(
                         angle.cos() * outward,
-                        rng.r#gen_range(-1.5..-0.3_f32),
+                        rng.random_range(-1.5..-0.3_f32),
                         angle.sin() * outward,
                     );
-                    (vel, event.lifetime * rng.r#gen_range(0.7..1.0_f32))
+                    (vel, event.lifetime * rng.random_range(0.7..1.0_f32))
                 }
                 ParticleStyle::Ring => {
                     // Expand outward in a flat horizontal ring
-                    let angle = rng.r#gen_range(0.0..std::f32::consts::TAU);
-                    let ring_speed = event.speed * rng.r#gen_range(0.8..1.2_f32);
+                    let angle = rng.random_range(0.0..std::f32::consts::TAU);
+                    let ring_speed = event.speed * rng.random_range(0.8..1.2_f32);
                     let vel = Vec3::new(
                         angle.cos() * ring_speed,
-                        rng.r#gen_range(-0.3..0.3_f32), // nearly flat
+                        rng.random_range(-0.3..0.3_f32), // nearly flat
                         angle.sin() * ring_speed,
                     );
-                    (vel, event.lifetime * rng.r#gen_range(0.6..1.0_f32))
+                    (vel, event.lifetime * rng.random_range(0.6..1.0_f32))
                 }
             };
 
             // Spread spawn position slightly for sparkle/ember
             let offset = match event.style {
                 ParticleStyle::RisingSparkle => Vec3::new(
-                    rng.r#gen_range(-1.5..1.5_f32),
-                    rng.r#gen_range(-0.5..1.0_f32),
-                    rng.r#gen_range(-1.5..1.5_f32),
+                    rng.random_range(-1.5..1.5_f32),
+                    rng.random_range(-0.5..1.0_f32),
+                    rng.random_range(-1.5..1.5_f32),
                 ),
                 ParticleStyle::FallingEmber => Vec3::new(
-                    rng.r#gen_range(-0.8..0.8_f32),
-                    rng.r#gen_range(0.0..3.0_f32),
-                    rng.r#gen_range(-0.8..0.8_f32),
+                    rng.random_range(-0.8..0.8_f32),
+                    rng.random_range(0.0..3.0_f32),
+                    rng.random_range(-0.8..0.8_f32),
                 ),
                 _ => Vec3::ZERO,
             };
@@ -401,28 +401,28 @@ pub fn ball_trail_particles(
         ..default()
     });
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     for (ball_tf, vel) in &balls {
         let speed = vel.0.length();
         // Higher speed = more particles. Always at least 50% chance.
         let spawn_chance = (speed / 20.0).clamp(0.5, 1.0);
-        if rng.r#gen::<f32>() > spawn_chance {
+        if rng.random::<f32>() > spawn_chance {
             continue;
         }
 
         let offset = Vec3::new(
-            rng.r#gen_range(-0.15..0.15_f32),
-            rng.r#gen_range(-0.05..0.2_f32),
-            rng.r#gen_range(-0.15..0.15_f32),
+            rng.random_range(-0.15..0.15_f32),
+            rng.random_range(-0.05..0.2_f32),
+            rng.random_range(-0.15..0.15_f32),
         );
 
         commands.spawn((
             Particle {
                 velocity: Vec3::new(
-                    rng.r#gen_range(-0.5..0.5_f32),
-                    rng.r#gen_range(0.5..2.0_f32),
-                    rng.r#gen_range(-0.5..0.5_f32),
+                    rng.random_range(-0.5..0.5_f32),
+                    rng.random_range(0.5..2.0_f32),
+                    rng.random_range(-0.5..0.5_f32),
                 ),
                 lifetime: 0.8,
                 max_lifetime: 0.8,

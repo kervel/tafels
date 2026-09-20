@@ -121,13 +121,13 @@ fn spawn_beacon(
         return;
     };
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // Try to find a valid spawn position
     let mut spawn_pos = None;
     for _ in 0..40 {
-        let angle = rng.r#gen_range(0.0..std::f32::consts::TAU);
-        let dist = rng.r#gen_range(30.0..60.0_f32);
+        let angle = rng.random_range(0.0..std::f32::consts::TAU);
+        let dist = rng.random_range(30.0..60.0_f32);
         let candidate = Vec3::new(
             char_tf.translation.x + angle.cos() * dist,
             0.0,
@@ -181,7 +181,7 @@ fn spawn_beacon(
     let spawn_center = Vec3::new(pos.x, ground_y, pos.z);
 
     // Random facing direction
-    let facing_angle = rng.r#gen_range(0.0..std::f32::consts::TAU);
+    let facing_angle = rng.random_range(0.0..std::f32::consts::TAU);
     let facing_dir = Vec3::new(facing_angle.cos(), 0.0, facing_angle.sin());
 
     let eid = active_exercises.next_exercise_id;
@@ -191,10 +191,10 @@ fn spawn_beacon(
     let exercise = generate_exercise(&session.difficulty);
 
     // Random world-lifetime between 45-90 seconds (longer so beacons stick around)
-    let lifetime = rng.r#gen_range(45.0..90.0_f32);
+    let lifetime = rng.random_range(45.0..90.0_f32);
 
     // Random beacon color
-    let color_idx = rng.r#gen_range(0..NEON_COLORS.len());
+    let color_idx = rng.random_range(0..NEON_COLORS.len());
     let neon = NEON_COLORS[color_idx];
 
     // Beacon visual: tall emissive capsule with point light
@@ -247,7 +247,7 @@ fn spawn_beacon(
                     color: Color::srgb(neon[0], neon[1], neon[2]),
                     intensity: 1_500_000.0,
                     range: 30.0,
-                    shadows_enabled: false,
+                    shadow_maps_enabled: false,
                     ..default()
                 },
                 Transform::from_translation(Vec3::new(
@@ -463,7 +463,7 @@ fn update_timer_text(
 
         // Swap texture on the material
         let tex_index = (current_sec as usize).min(timer_text.prerendered.len().saturating_sub(1));
-        if let Some(mat) = mat_assets.get_mut(mat_handle.id()) {
+        if let Some(mut mat) = mat_assets.get_mut(mat_handle.id()) {
             let new_tex = timer_text.prerendered[tex_index].clone();
             mat.base_color_texture = Some(new_tex.clone());
             mat.emissive_texture = Some(new_tex);
@@ -632,7 +632,7 @@ fn spawn_server_beacon(
                         color: base_color,
                         intensity: 1_500_000.0,
                         range: 30.0,
-                        shadows_enabled: false,
+                        shadow_maps_enabled: false,
                         ..default()
                     },
                     Transform::from_translation(Vec3::new(

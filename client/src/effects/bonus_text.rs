@@ -6,11 +6,11 @@ use crate::hud::{AnswerFeedback, SpeedTier};
 #[derive(Resource)]
 pub struct DigitAssets {
     /// Maps char to scene handle. Keys: '0'-'9', 'x', '+', '.'
-    scenes: Vec<(char, Handle<Scene>)>,
+    scenes: Vec<(char, Handle<WorldAsset>)>,
 }
 
 impl DigitAssets {
-    pub fn get(&self, c: char) -> Option<&Handle<Scene>> {
+    pub fn get(&self, c: char) -> Option<&Handle<WorldAsset>> {
         self.scenes.iter().find(|(ch, _)| *ch == c).map(|(_, h)| h)
     }
 }
@@ -33,10 +33,10 @@ pub fn load_digit_assets(mut commands: Commands, asset_server: Res<AssetServer>)
         ('.', "models/digits/dot.glb"),
     ];
 
-    let scenes: Vec<(char, Handle<Scene>)> = chars_and_files
+    let scenes: Vec<(char, Handle<WorldAsset>)> = chars_and_files
         .into_iter()
         .map(|(c, path)| {
-            let handle: Handle<Scene> = asset_server.load(format!("{}#Scene0", path));
+            let handle: Handle<WorldAsset> = asset_server.load(format!("{}#Scene0", path));
             (c, handle)
         })
         .collect();
@@ -157,7 +157,7 @@ pub fn handle_bonus_text_events(
                 let child = commands
                     .spawn((
                         BonusGlyph,
-                        SceneRoot(scene.clone()),
+                        WorldAssetRoot(scene.clone()),
                         Transform::from_translation(Vec3::new(x_offset, 0.0, 0.0))
                             .with_rotation(stand_up),
                     ))

@@ -124,8 +124,8 @@ fn render_lobby_notification(
                         NotificationText,
                         Text::new(label),
                         TextFont {
-                            font: font.clone(),
-                            font_size: 20.0,
+                            font: font.clone().into(),
+                            font_size: FontSize::Px(20.0),
                             ..default()
                         },
                         TextColor(Color::srgb(0.4, 0.7, 1.0)),
@@ -155,8 +155,8 @@ fn render_lobby_notification(
                                 btn.spawn((
                                     Text::new("Join"),
                                     TextFont {
-                                        font: font.clone(),
-                                        font_size: 18.0,
+                                        font: font.clone().into(),
+                                        font_size: FontSize::Px(18.0),
                                         ..default()
                                     },
                                     TextColor(Color::srgb(0.3, 1.0, 0.5)),
@@ -179,8 +179,8 @@ fn render_lobby_notification(
                                 btn.spawn((
                                     Text::new("Dismiss"),
                                     TextFont {
-                                        font: font.clone(),
-                                        font_size: 18.0,
+                                        font: font.clone().into(),
+                                        font_size: FontSize::Px(18.0),
                                         ..default()
                                     },
                                     TextColor(Color::srgba(0.7, 0.7, 0.7, 0.8)),
