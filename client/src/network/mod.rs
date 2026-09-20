@@ -362,7 +362,7 @@ fn receive_messages(
                                 {
                                     let mut sender = ws.sender.lock().unwrap();
                                     sender.0.send(WsMessage::Binary(encode(&ClientMessage::SetName { name })));
-                                    sender.0.send(WsMessage::Binary(encode(&ClientMessage::SetDifficulty { difficulty: session.difficulty })));
+                                    sender.0.send(WsMessage::Binary(encode(&ClientMessage::SetDifficulty { mode: session.mode, difficulty: session.difficulty })));
                                 }
 
                                 drop(receiver);

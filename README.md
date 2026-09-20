@@ -11,7 +11,7 @@ A 3D educational game that teaches multiplication and division tables through an
 ## Features
 
 - **3D alpine landscape** with procedurally generated terrain, trees, grass, and atmospheric lighting
-- **Multiplication & division exercises** with three difficulty levels (easy / medium / hard)
+- **Two game modes**: multiplication & division tables, or addition & subtraction crossing a ten (8+6, 12-7, 47+8) — each with three difficulty levels (easy / medium / hard)
 - **Ball-throwing mechanic** to answer multiple-choice questions floating in the world
 - **Coin-based scoring** with bonuses for fast answers
 - **Real-time multiplayer** via WebSocket — race other players to answer beacons first

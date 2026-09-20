@@ -3,4 +3,5 @@ pub mod constants;
 pub mod difficulty;
 pub mod exercise;
 pub mod heightmap;
+pub mod mode;
 pub mod protocol;

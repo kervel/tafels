@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use tafels_shared::difficulty::Difficulty;
+use tafels_shared::mode::GameMode;
 use tafels_shared::protocol::{BeaconInfo, PlayerState};
 use tokio::sync::{Mutex, broadcast};
 
@@ -31,6 +32,7 @@ pub struct GameWorld {
     pub player_solo: HashSet<u32>,
     pub round_state: RoundState,
     pub difficulty: Difficulty,
+    pub mode: GameMode,
 }
 
 impl GameWorld {
@@ -47,6 +49,7 @@ impl GameWorld {
             player_coins: HashMap::new(),
             round_state: RoundState::Lobby,
             difficulty: Difficulty::Easy,
+            mode: GameMode::Tables,
         }
     }
 

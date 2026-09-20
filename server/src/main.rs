@@ -244,11 +244,12 @@ async fn handle_client_message(player_id: u32, msg: ClientMessage, state: &AppSt
             };
             let _ = state.broadcast_tx.send(encode(&msg));
         }
-        ClientMessage::SetDifficulty { difficulty } => {
+        ClientMessage::SetDifficulty { mode, difficulty } => {
             let mut world = state.world.lock().await;
             // Only allow setting difficulty in lobby, first player decides
             if matches!(world.round_state, RoundState::Lobby) {
                 world.difficulty = difficulty;
+                world.mode = mode;
             }
         }
         ClientMessage::Ready => {

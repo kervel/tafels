@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use super::GameSession;
-use super::difficulty::Difficulty;
+use super::difficulty::{Difficulty, GameMode};
 use crate::effects::particles::{ParticleStyle, StyledParticleEvent};
 
 pub use tafels_shared::exercise::{ExerciseState, Operation};
@@ -36,8 +36,8 @@ pub struct ActiveExercise {
     pub state: ExerciseState,
 }
 
-pub fn generate_exercise(difficulty: &Difficulty) -> ActiveExercise {
-    let data = tafels_shared::exercise::generate_exercise(difficulty);
+pub fn generate_exercise(mode: GameMode, difficulty: &Difficulty) -> ActiveExercise {
+    let data = tafels_shared::exercise::generate_exercise(mode, difficulty);
     ActiveExercise {
         operation: data.operation,
         operand_a: data.operand_a,
@@ -55,6 +55,8 @@ impl ActiveExercise {
         match self.operation {
             Operation::Multiply => format!("{} x {} = ?", self.operand_a, self.operand_b),
             Operation::Divide => format!("{} / {} = ?", self.operand_a, self.operand_b),
+            Operation::Add => format!("{} + {} = ?", self.operand_a, self.operand_b),
+            Operation::Subtract => format!("{} - {} = ?", self.operand_a, self.operand_b),
         }
     }
 }

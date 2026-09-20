@@ -65,7 +65,7 @@ impl BeaconManager {
         }
 
         // Collect data under lock: per-player beacon counts, positions, difficulty
-        let (players_needing_beacons, existing_positions, difficulty, mut next_id) = {
+        let (players_needing_beacons, existing_positions, mode, difficulty, mut next_id) = {
             let world = state.world.lock().await;
             if world.players.is_empty() {
                 return;
@@ -88,7 +88,7 @@ impl BeaconManager {
                 .map(|p| (p.player_id, p.x, p.z))
                 .collect();
 
-            (players, existing, world.difficulty, world.next_beacon_id)
+            (players, existing, world.mode, world.difficulty, world.next_beacon_id)
         };
 
         // Build beacons synchronously (no await) so thread_rng is safe
@@ -137,15 +137,8 @@ impl BeaconManager {
 
                 let y = sample_height(&self.heightmap, x, z);
 
-                let exercise = generate_exercise(&difficulty);
-                let question_text = match exercise.operation {
-                    tafels_shared::exercise::Operation::Multiply => {
-                        format!("{} x {} = ?", exercise.operand_a, exercise.operand_b)
-                    }
-                    tafels_shared::exercise::Operation::Divide => {
-                        format!("{} / {} = ?", exercise.operand_a, exercise.operand_b)
-                    }
-                };
+                let exercise = generate_exercise(mode, &difficulty);
+                let question_text = exercise.question_text();
 
                 let beacon = BeaconInfo {
                     beacon_id: next_id,

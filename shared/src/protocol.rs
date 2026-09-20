@@ -104,7 +104,10 @@ pub enum ClientMessage {
     ActivateBeacon { beacon_id: u32 },
     ShootBall { x: f32, y: f32, z: f32, vx: f32, vy: f32, vz: f32 },
     SetName { name: String },
-    SetDifficulty { difficulty: crate::difficulty::Difficulty },
+    SetDifficulty {
+        mode: crate::mode::GameMode,
+        difficulty: crate::difficulty::Difficulty,
+    },
     Ready,
     UpdateScore { coins: i32 },
     EnterSolo,

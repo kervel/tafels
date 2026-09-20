@@ -7,7 +7,7 @@ pub mod scoring;
 
 use bevy::prelude::*;
 
-use difficulty::Difficulty;
+use difficulty::{Difficulty, GameMode};
 
 pub struct GamePlugin;
 
@@ -80,6 +80,7 @@ pub enum GameState {
 
 #[derive(Resource)]
 pub struct GameSession {
+    pub mode: GameMode,
     pub difficulty: Difficulty,
     pub total_exercises: u32,
     pub current_index: u32,
@@ -100,6 +101,7 @@ impl Default for GameSession {
     fn default() -> Self {
         let difficulty = Difficulty::Easy;
         Self {
+            mode: GameMode::Tables,
             difficulty,
             total_exercises: 30,
             current_index: 0,

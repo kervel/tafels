@@ -188,7 +188,7 @@ fn spawn_beacon(
     active_exercises.next_exercise_id += 1;
     active_exercises.total_spawned += 1;
 
-    let exercise = generate_exercise(&session.difficulty);
+    let exercise = generate_exercise(session.mode, &session.difficulty);
 
     // Random world-lifetime between 45-90 seconds (longer so beacons stick around)
     let lifetime = rng.random_range(45.0..90.0_f32);
@@ -538,6 +538,16 @@ fn parse_question_text(text: &str) -> (Operation, u32, u32) {
             let a = a.trim().parse().unwrap_or(0);
             let b = b.trim().parse().unwrap_or(0);
             return (Operation::Divide, a, b);
+        }
+        if let Some((a, b)) = left.split_once(" + ") {
+            let a = a.trim().parse().unwrap_or(0);
+            let b = b.trim().parse().unwrap_or(0);
+            return (Operation::Add, a, b);
+        }
+        if let Some((a, b)) = left.split_once(" - ") {
+            let a = a.trim().parse().unwrap_or(0);
+            let b = b.trim().parse().unwrap_or(0);
+            return (Operation::Subtract, a, b);
         }
     }
     (Operation::Multiply, 0, 0)

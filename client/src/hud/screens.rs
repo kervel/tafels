@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::game::difficulty::Difficulty;
+use crate::game::difficulty::{Difficulty, GameMode};
 use crate::game::{ActiveExercises, GameSession, GameState, Leaderboard, MultiplayerRoundState};
 use crate::network::{ConnectionStatus, RoundMessageBuffer, WsConnection};
 use crate::touch::TouchDevice;
@@ -17,7 +17,8 @@ impl Plugin for ScreensPlugin {
             .add_systems(OnExit(GameState::Menu), despawn_menu)
             .add_systems(
                 Update,
-                handle_menu_input.run_if(in_state(GameState::Menu)),
+                (handle_mode_input, handle_menu_back, handle_menu_input)
+                    .run_if(in_state(GameState::Menu)),
             )
             .add_systems(
                 Update,
@@ -54,6 +55,24 @@ struct MenuScreen;
 
 #[derive(Component)]
 struct DifficultyButton(Difficulty);
+
+/// Description text under a difficulty button; refreshed when the mode changes.
+#[derive(Component)]
+struct DifficultyDescription(Difficulty);
+
+#[derive(Component)]
+struct ModeButton(GameMode);
+
+#[derive(Component)]
+struct MenuBackButton;
+
+/// Step 1 of the menu: pick a game mode.
+#[derive(Component)]
+struct ModeSection;
+
+/// Step 2 of the menu: pick a difficulty (hidden until a mode is chosen).
+#[derive(Component)]
+struct DifficultySection;
 
 #[derive(Component)]
 struct NameInputDisplay;
@@ -170,74 +189,147 @@ fn spawn_menu_screen(mut commands: Commands, session: Res<GameSession>, game_fon
                 BorderColor::all(Color::srgba(0.3, 1.0, 0.5, 0.5)),
             ));
 
-            // Subtitle
-            parent.spawn((
-                Text::new("Choose Difficulty"),
+            // Step 1: game mode
+            parent
+                .spawn((
+                    ModeSection,
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                ))
+                .with_children(|section| {
+                    spawn_menu_subtitle(section, &font, "Choose Game Mode");
+                    for mode in GameMode::ALL {
+                        spawn_menu_button(
+                            section,
+                            &font,
+                            ModeButton(mode),
+                            Color::srgb(0.3, 0.7, 1.0),
+                            mode.label(),
+                            mode.description(),
+                            (),
+                        );
+                    }
+                });
+
+            // Step 2: difficulty (shown after a mode is picked)
+            parent
+                .spawn((
+                    DifficultySection,
+                    Node {
+                        display: Display::None,
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                ))
+                .with_children(|section| {
+                    spawn_menu_subtitle(section, &font, "Choose Difficulty");
+                    for (diff, color) in [
+                        (Difficulty::Easy, Color::srgb(0.2, 0.8, 0.3)),
+                        (Difficulty::Medium, Color::srgb(0.9, 0.7, 0.1)),
+                        (Difficulty::Hard, Color::srgb(0.9, 0.2, 0.2)),
+                    ] {
+                        spawn_menu_button(
+                            section,
+                            &font,
+                            DifficultyButton(diff),
+                            color,
+                            diff.label(),
+                            diff.description(session.mode),
+                            DifficultyDescription(diff),
+                        );
+                    }
+                    section.spawn((
+                        MenuBackButton,
+                        Button,
+                        Text::new("< Back"),
+                        TextFont {
+                            font: font.clone().into(),
+                            font_size: FontSize::Px(20.0),
+                            ..default()
+                        },
+                        TextColor(Color::srgba(0.8, 0.8, 0.8, 0.9)),
+                        Node {
+                            margin: UiRect::top(Val::Px(16.0)),
+                            padding: UiRect::axes(Val::Px(16.0), Val::Px(8.0)),
+                            ..default()
+                        },
+                    ));
+                });
+        });
+}
+
+fn spawn_menu_subtitle(parent: &mut ChildSpawnerCommands, font: &Handle<Font>, text: &str) {
+    parent.spawn((
+        Text::new(text),
+        TextFont {
+            font: font.clone().into(),
+            font_size: FontSize::Px(28.0),
+            ..default()
+        },
+        TextColor(Color::WHITE),
+        Node {
+            margin: UiRect::bottom(Val::Px(30.0)),
+            ..default()
+        },
+    ));
+}
+
+/// A large menu choice button with a colored title and a smaller description.
+fn spawn_menu_button(
+    parent: &mut ChildSpawnerCommands,
+    font: &Handle<Font>,
+    marker: impl Bundle,
+    color: Color,
+    label: &str,
+    description: &str,
+    description_marker: impl Bundle,
+) {
+    parent
+        .spawn((
+            marker,
+            Button,
+            Node {
+                width: Val::Px(320.0),
+                height: Val::Auto,
+                padding: UiRect::axes(Val::Px(20.0), Val::Px(14.0)),
+                margin: UiRect::axes(Val::Px(8.0), Val::Px(12.0)),
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                border: UiRect::all(Val::Px(2.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
+            BorderColor::all(color),
+        ))
+        .with_children(|btn| {
+            btn.spawn((
+                Text::new(label),
                 TextFont {
                     font: font.clone().into(),
-                    font_size: FontSize::Px(28.0),
+                    font_size: FontSize::Px(26.0),
                     ..default()
                 },
-                TextColor(Color::WHITE),
+                TextColor(color),
+            ));
+            btn.spawn((
+                description_marker,
+                Text::new(description),
+                TextFont {
+                    font: font.clone().into(),
+                    font_size: FontSize::Px(16.0),
+                    ..default()
+                },
+                TextColor(Color::srgba(0.8, 0.8, 0.8, 0.9)),
                 Node {
-                    margin: UiRect::bottom(Val::Px(30.0)),
+                    margin: UiRect::top(Val::Px(4.0)),
                     ..default()
                 },
             ));
-
-            // Difficulty buttons
-            for (diff, color) in [
-                (Difficulty::Easy, Color::srgb(0.2, 0.8, 0.3)),
-                (Difficulty::Medium, Color::srgb(0.9, 0.7, 0.1)),
-                (Difficulty::Hard, Color::srgb(0.9, 0.2, 0.2)),
-            ] {
-                let font = font.clone();
-                parent
-                    .spawn((
-                        DifficultyButton(diff),
-                        Button,
-                        Node {
-                            width: Val::Px(320.0),
-                            height: Val::Auto,
-                            padding: UiRect::axes(Val::Px(20.0), Val::Px(14.0)),
-                            margin: UiRect::axes(Val::Px(8.0), Val::Px(12.0)),
-                            flex_direction: FlexDirection::Column,
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            border: UiRect::all(Val::Px(2.0)),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.8)),
-                        BorderColor::all(color),
-                    ))
-                    .with_children(|btn| {
-                        // Difficulty name
-                        btn.spawn((
-                            Text::new(diff.label()),
-                            TextFont {
-                                font: font.clone().into(),
-                                font_size: FontSize::Px(26.0),
-                                ..default()
-                            },
-                            TextColor(color),
-                        ));
-                        // Description
-                        btn.spawn((
-                            Text::new(diff.description()),
-                            TextFont {
-                                font: font.clone().into(),
-                                font_size: FontSize::Px(16.0),
-                                ..default()
-                            },
-                            TextColor(Color::srgba(0.8, 0.8, 0.8, 0.9)),
-                            Node {
-                                margin: UiRect::top(Val::Px(4.0)),
-                                ..default()
-                            },
-                        ));
-                    });
-            }
-
         });
 }
 
@@ -344,6 +436,49 @@ fn handle_soft_keyboard_input(
             } else {
                 **text = format!("{}_", session.player_name);
             }
+        }
+    }
+}
+
+fn handle_mode_input(
+    interaction: Query<(&Interaction, &ModeButton), Changed<Interaction>>,
+    mut session: ResMut<GameSession>,
+    mut mode_section: Query<&mut Node, (With<ModeSection>, Without<DifficultySection>)>,
+    mut diff_section: Query<&mut Node, (With<DifficultySection>, Without<ModeSection>)>,
+    mut descriptions: Query<(&DifficultyDescription, &mut Text)>,
+) {
+    for (interaction, button) in &interaction {
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+        crate::touch::keyboard::hide_soft_keyboard();
+        session.mode = button.0;
+        for (desc, mut text) in &mut descriptions {
+            **text = desc.0.description(session.mode).to_string();
+        }
+        for mut node in &mut mode_section {
+            node.display = Display::None;
+        }
+        for mut node in &mut diff_section {
+            node.display = Display::Flex;
+        }
+    }
+}
+
+fn handle_menu_back(
+    interaction: Query<&Interaction, (With<MenuBackButton>, Changed<Interaction>)>,
+    mut mode_section: Query<&mut Node, (With<ModeSection>, Without<DifficultySection>)>,
+    mut diff_section: Query<&mut Node, (With<DifficultySection>, Without<ModeSection>)>,
+) {
+    for interaction in &interaction {
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+        for mut node in &mut mode_section {
+            node.display = Display::Flex;
+        }
+        for mut node in &mut diff_section {
+            node.display = Display::None;
         }
     }
 }
